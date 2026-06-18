@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🎾 Doubles Pro — Animation Tennis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:#0a1628;color:#fff;min-height:100vh;overflow-x:hidden}
+  :root{--green:#4ade80;--green-dark:#166534;--green-mid:#22c55e;--gold:#f59e0b;--court:#2d5a27;--court-light:#3a7a32;--white:#fff;--gray:#94a3b8;--dark:#0a1628;--card:#111d35;--card2:#162040;--red:#ef4444;--blue:#3b82f6;--accent:#a3e635}
+  .screen{display:none;flex-direction:column;min-height:100vh;padding:0 0 90px}
+  .screen.active{display:flex}
+  .header{background:linear-gradient(180deg,#0a1628 0%,rgba(10,22,40,0) 100%);padding:20px 20px 0;position:sticky;top:0;z-index:10}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .logo-icon{width:36px;height:36px;background:var(--green-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-text{font-size:20px;font-weight:700;letter-spacing:-0.5px;color:#fff}
+  .logo-sub{font-size:11px;color:var(--gray);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+  .hero{background:linear-gradient(135deg,#0f2a4a 0%,#0a1628 50%,#0d1f0d 100%);padding:48px 20px 32px;position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(74,222,128,0.15) 0%,transparent 70%);pointer-events:none}
+  .hero-title{font-size:36px;font-weight:800;line-height:1.1;margin-bottom:10px;letter-spacing:-1px}
+  .hero-title span{color:var(--green)}
+  .hero-sub{font-size:14px;color:var(--gray);line-height:1.6}
+  .section{padding:20px}
+  .section-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:12px;font-weight:600}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;font-size:16px;font-weight:600;transition:all 0.15s;letter-spacing:-0.3px}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+  .btn-primary{background:var(--green-mid);color:#fff}
+  .btn-primary:active{transform:scale(0.97);background:#16a34a}
+  .btn-secondary{background:var(--card);color:#fff;border:1px solid rgba(255,255,255,0.1)}
+  .btn-secondary:active{transform:scale(0.97)}
+  .btn-ghost{background:transparent;color:var(--gray);font-size:14px}
+  .btn-danger{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+  .btn-sm{padding:10px 16px;font-size:14px;border-radius:10px}
+  .card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,0.06);padding:16px;margin-bottom:12px}
+  .card2{background:var(--card2);border-radius:12px;padding:12px 16px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.05)}
+  .input-group{margin-bottom:16px}
+  .input-label{font-size:12px;color:var(--gray);margin-bottom:6px;letter-spacing:0.5px;font-weight:500}
+  .input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:13px 14px;color:#fff;font-size:16px;outline:none;transition:border 0.15s}
+  .input:focus{border-color:var(--green-mid)}
+  .select{width:100%;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:13px 14px;color:#fff;font-size:16px;outline:none;appearance:none;-webkit-appearance:none}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+  .toggle{width:44px;height:26px;border-radius:13px;background:rgba(255,255,255,0.1);border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+  .toggle.on{background:var(--green-mid)}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+  .toggle.on::after{transform:translateX(18px)}
+  .toggle-label{font-size:14px;font-weight:500}
+  .toggle-sub{font-size:12px;color:var(--gray);margin-top:2px}
+  .player-item{display:flex;align-items:center;gap:12px;background:var(--card2);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.05)}
+  .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+  .avatar-m{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
+  .avatar-f{background:linear-gradient(135deg,#be185d,#ec4899)}
+  .player-name{flex:1;font-size:14px;font-weight:600}
+  .player-gender{font-size:11px;color:var(--gray);margin-top:1px}
+  .delete-btn{width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.1);border:none;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .gender-select{display:flex;gap:8px}
+  .gender-btn{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--card2);color:var(--gray);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s}
+  .gender-btn.active-m{background:rgba(59,130,246,0.2);border-color:#3b82f6;color:#60a5fa}
+  .gender-btn.active-f{background:rgba(236,72,153,0.2);border-color:#ec4899;color:#f472b6}
+  .court-card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,0.08);padding:16px;margin-bottom:12px;overflow:hidden}
+  .court-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .court-badge{background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);color:var(--green);font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;letter-spacing:0.5px}
+  .court-badge-done{background:rgba(163,230,53,0.1);border:1px solid rgba(163,230,53,0.2);color:var(--accent)}
+  .vs-row{display:flex;align-items:center;gap:8px}
+  .team-block{flex:1;background:var(--card2);border-radius:10px;padding:10px 12px}
+  .team-label{font-size:10px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
+  .team-player{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .vs-sep{font-size:11px;color:var(--gray);font-weight:700;flex-shrink:0}
+  .score-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .score-input{flex:1;text-align:center;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 8px;color:#fff;font-size:22px;font-weight:700;outline:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .score-input:focus{border-color:var(--green-mid)}
+  .score-vs{font-size:14px;color:var(--gray);font-weight:700;flex-shrink:0}
+  .num-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;background:var(--card2);border-radius:12px;padding:12px}
+  .num-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;font-size:20px;font-weight:600;color:#fff;cursor:pointer;transition:all 0.1s;text-align:center;-webkit-user-select:none;user-select:none}
+  .num-btn:active{background:rgba(255,255,255,0.15);transform:scale(0.95)}
+  .num-btn.del{color:var(--gray);font-size:16px}
+  .num-btn.ok{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+  .rank-item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.06)}
+  .rank-pos{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gray);flex-shrink:0}
+  .rank-pos.gold{background:rgba(245,158,11,0.2);color:var(--gold)}
+  .rank-pos.silver{background:rgba(148,163,184,0.2);color:#94a3b8}
+  .rank-pos.bronze{background:rgba(180,83,9,0.2);color:#f97316}
+  .rank-name{flex:1;font-size:15px;font-weight:600}
+  .rank-pts{font-size:20px;font-weight:800;color:var(--green)}
+  .rank-pts-label{font-size:10px;color:var(--gray);font-weight:500;margin-top:1px}
+  .rank-stats{font-size:11px;color:var(--gray);margin-top:2px;line-height:1.6}
+  .badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:0.5px;text-transform:uppercase}
+  .badge-win{background:rgba(74,222,128,0.15);color:var(--green)}
+  .badge-loss{background:rgba(239,68,68,0.1);color:#ef4444}
+  .tab-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(10,22,40,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.08);display:flex;padding:8px 0 24px;z-index:100}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px;border:none;background:transparent;color:var(--gray);font-size:10px;font-weight:600;letter-spacing:0.5px;transition:color 0.15s}
+  .tab.active{color:var(--green)}
+  .tab-icon{font-size:22px;line-height:1}
+  .progress-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:20px}
+  .progress-fill{height:100%;background:var(--green-mid);border-radius:2px;transition:width 0.3s}
+  .stat-row{display:flex;gap:8px;margin-bottom:16px}
+  .stat-box{flex:1;background:var(--card2);border-radius:12px;padding:12px;text-align:center}
+  .stat-num{font-size:22px;font-weight:800;color:var(--green)}
+  .stat-label{font-size:10px;color:var(--gray);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase}
+  .info-banner{background:rgba(163,230,53,0.08);border:1px solid rgba(163,230,53,0.2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--accent);line-height:1.5;margin-bottom:16px}
+  .round-header{background:linear-gradient(135deg,var(--card),var(--card2));border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.08);text-align:center}
+  .round-num{font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--green)}
+  .round-sub{font-size:12px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end}
+  .modal{background:#111d35;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;border-top:1px solid rgba(255,255,255,0.1);max-height:85vh;overflow-y:auto}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:4px}
+  .modal-sub{font-size:13px;color:var(--gray);margin-bottom:20px}
+  .saved-item{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.05)}
+  .saved-item:active{background:rgba(255,255,255,0.08)}
+  .winner-badge{display:inline-block;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.4);color:var(--gold);font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;margin-top:4px}
+  .idle-player{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px 14px;margin-top:12px}
+  .idle-title{font-size:10px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:700}
+  .idle-player-name{font-size:13px;color:#fcd34d;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .score-saved{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .score-display{font-size:22px;font-weight:800;color:var(--green)}
+  .save-notice{font-size:11px;color:var(--gray);margin-top:4px}
+  .history-item{background:var(--card2);border-radius:10px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04)}
+  .history-round{font-size:10px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+  input[type=text],input[type=number]{-webkit-appearance:none;appearance:none;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {useState,useEffect,useRef}=React;
+const h=React.createElement;
+
+function saveGame(game){try{localStorage.setItem('td_game_v2',JSON.stringify(game));}catch(e){}}
+function loadGame(){try{const d=localStorage.getItem('td_game_v2');return d?JSON.parse(d):null;}catch(e){return null;}}
+function saveSavedGames(list){try{localStorage.setItem('td_saves_v2',JSON.stringify(list));}catch(e){}}
+function loadSavedGames(){try{const d=localStorage.getItem('td_saves_v2');return d?JSON.parse(d):[];}catch(e){return[];}}
+
+function genId(){return Math.random().toString(36).substr(2,9);}
+
+function buildRound(players,prevRounds,courts,mixMode){
+  const slots=courts*4;
+
+  // Match count per player
+  const matchCount={};
+  players.forEach(p=>{matchCount[p.id]=0;});
+  prevRounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      [m.t1p1,m.t1p2,m.t2p1,m.t2p2].forEach(id=>{if(id&&matchCount[id]!==undefined)matchCount[id]++;});
+    });
+  });
+
+  // Idle weight: favour players who sat out recently
+  const idleW={};
+  players.forEach(p=>{idleW[p.id]=0;});
+  prevRounds.forEach((r,ri)=>{r.idle.forEach(id=>{idleW[id]+=(ri+1);});});
+
+  // Partner history
+  const partnerH={};
+  prevRounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      [[m.t1p1,m.t1p2],[m.t2p1,m.t2p2]].forEach(([a,b])=>{
+        if(a&&b){const k=[a,b].sort().join('-');partnerH[k]=(partnerH[k]||0)+1;}
+      });
+    });
+  });
+
+  // Priority sort: least matches first, then idle recency
+  function byPriority(a,b){
+    const dm=(matchCount[a.id]||0)-(matchCount[b.id]||0);
+    return dm!==0?dm:(idleW[b.id]||0)-(idleW[a.id]||0);
+  }
+
+  function bestPartner(player,candidates){
+    return candidates.slice().sort((a,b)=>{
+      const ka=[player.id,a.id].sort().join('-');
+      const kb=[player.id,b.id].sort().join('-');
+      return (partnerH[ka]||0)-(partnerH[kb]||0);
+    })[0];
+  }
+
+  const hasMix=(mixMode==='mixed'||mixMode==='most')
+    &&players.some(p=>p.gender==='M')&&players.some(p=>p.gender==='F');
+
+  // --- Step 1: select playing pool ---
+  // Core rule: ecart max 1 match. Select the playingCount players with the
+  // fewest matches, respecting the group-of-4 constraint.
+  // Then, WITHIN that pool, arrange pairs to maximise mixity.
+
+  const n=players.length;
+  const maxPlaying=Math.min(slots,Math.floor(n/4)*4);
+  const sorted=[...players].sort(byPriority);
+  let playing=sorted.slice(0,maxPlaying);
+  let idle=sorted.slice(maxPlaying);
+
+  // --- Step 2: form pairs ---
+  let pairs=[];
+
+  if(!hasMix){
+    const rem=[...playing];
+    while(rem.length>=2){
+      const p1=rem.shift();
+      const best=bestPartner(p1,rem);
+      rem.splice(rem.indexOf(best),1);
+      pairs.push([p1,best]);
+    }
+  } else {
+    // Mix mode: within the playing pool, maximise mixed pairs
+    // while handling odd gender imbalances gracefully.
+    const playM=playing.filter(p=>p.gender==='M');
+    const playF=playing.filter(p=>p.gender==='F');
+
+    // Form as many mixed pairs as possible
+    const remM=[...playM],remF=[...playF];
+    const mixedPairs=[];
+    while(remM.length>0&&remF.length>0){
+      const m=remM.shift();
+      const best=bestPartner(m,remF);
+      remF.splice(remF.indexOf(best),1);
+      mixedPairs.push([m,best]);
+    }
+
+    // Leftover same-gender players
+    const leftover=[...remM,...remF];
+
+    // If odd leftover AND in 'most' mode: break last mixed pair, fold into same-gender
+    if(leftover.length%2===1&&mixedPairs.length>0&&mixMode==='most'){
+      const last=mixedPairs.pop();
+      leftover.push(last[0],last[1]);
+    }
+
+    // Form same-gender pairs from leftover
+    const sameRem=[...leftover];
+    const samePairs=[];
+    while(sameRem.length>=2){
+      const p1=sameRem.shift();
+      const best=bestPartner(p1,sameRem);
+      sameRem.splice(sameRem.indexOf(best),1);
+      samePairs.push([p1,best]);
+    }
+    // Any solo player left over moves to idle
+    if(sameRem.length===1) idle.push(sameRem[0]);
+
+    pairs=[...mixedPairs,...samePairs];
+  }
+
+  // Assign pairs to courts
+  const matches=[];
+  for(let i=0;i+1<pairs.length&&matches.length<courts;i+=2){
+    const t1=pairs[i],t2=pairs[i+1];
+    if(!t1||!t2)break;
+    matches.push({
+      id:genId(),court:matches.length+1,
+      t1p1:t1[0].id,t1p2:t1[1].id,
+      t2p1:t2[0].id,t2p2:t2[1].id,
+      score1:'',score2:'',done:false
+    });
+  }
+
+  // Players not assigned to a court go to idle
+  const playingInMatches=new Set(matches.flatMap(m=>[m.t1p1,m.t1p2,m.t2p1,m.t2p2]));
+  const extraIdle=playing.filter(p=>!playingInMatches.has(p.id));
+  const finalIdle=[...idle,...extraIdle];
+
+  return {id:genId(),matches,idle:finalIdle.map(p=>p.id)};
+}
+
+function computeStandings(players,rounds,bonusMode){
+  const stats={};
+  players.forEach(p=>{stats[p.id]={id:p.id,name:p.name,gender:p.gender,pts:0,wins:0,losses:0,matches:0,bonusEarned:0};});
+  rounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      if(!m.done)return;
+      const s1=parseInt(m.score1)||0,s2=parseInt(m.score2)||0;
+      if(s1===0&&s2===0)return;
+      const total=s1+s2;
+      const t1=[m.t1p1,m.t1p2],t2=[m.t2p1,m.t2p2];
+      t1.forEach(id=>{if(!stats[id])return;
+        stats[id].matches++;
+        if(s1>s2){stats[id].wins++;stats[id].pts+=3;}
+        else{stats[id].losses++;stats[id].pts+=1;
+          if(bonusMode&&total>0&&s1/total>=0.4){stats[id].pts+=1;stats[id].bonusEarned++;}
+        }
+        if(bonusMode&&s1>s2&&total>0&&s2/total<=0.3){stats[id].pts+=1;stats[id].bonusEarned++;}
+      });
+      t2.forEach(id=>{if(!stats[id])return;
+        stats[id].matches++;
+        if(s2>s1){stats[id].wins++;stats[id].pts+=3;}
+        else{stats[id].losses++;stats[id].pts+=1;
+          if(bonusMode&&total>0&&s2/total>=0.4){stats[id].pts+=1;stats[id].bonusEarned++;}
+        }
+        if(bonusMode&&s2>s1&&total>0&&s1/total<=0.3){stats[id].pts+=1;stats[id].bonusEarned++;}
+      });
+    });
+  });
+  return Object.values(stats).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||a.losses-b.losses);
+}
+
+function NumPad({value,onChange,onClose,label}){
+  const [cur,setCur]=useState(value||'');
+  const press=k=>{
+    if(k==='⌫'){setCur(c=>c.slice(0,-1));}
+    else if(k==='OK'){onChange(cur);onClose();}
+    else if(cur.length<3){setCur(c=>c+k);}
+  };
+  return h('div',{className:'modal-overlay',onClick:e=>{if(e.target===e.currentTarget)onClose();}},
+    h('div',{className:'modal'},
+      h('div',{className:'modal-title'},label||'Score'),
+      h('div',{className:'modal-sub'},'Saisir le score de l\'équipe'),
+      h('div',{style:{fontSize:44,fontWeight:800,textAlign:'center',color:'var(--green)',minHeight:64,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--card2)',borderRadius:14,padding:'12px',marginBottom:4,letterSpacing:4}},cur||'—'),
+      h('div',{className:'num-pad'},
+        ['1','2','3','4','5','6','7','8','9','⌫','0','OK'].map(k=>
+          h('button',{key:k,className:'num-btn '+(k==='⌫'?'del':k==='OK'?'ok':''),onClick:()=>press(k),onTouchEnd:e=>{e.preventDefault();press(k);}},k)
+        )
+      )
+    )
+  );
+}
+
+function AddPlayerPanel({game,setGame}){
+  const [name,setName]=useState('');
+  const [gender,setGender]=useState('M');
+  const add=()=>{
+    if(!name.trim())return;
+    const pl={id:genId(),name:name.trim(),gender};
+    const u={...game,players:[...game.players,pl]};
+    setGame(u);saveGame(u);setName('');
+  };
+  return h('div',{className:'card'},
+    h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Ajouter un joueur'),
+    h('div',{className:'input-group',style:{marginBottom:10}},
+      h('div',{className:'input-label'},'Prénom'),
+      h('input',{className:'input',value:name,onChange:e=>setName(e.target.value),
+        placeholder:'Prénom du joueur',onKeyDown:e=>e.key==='Enter'&&add()})
+    ),
+    h('div',{className:'input-group',style:{marginBottom:12}},
+      h('div',{className:'input-label'},'Genre'),
+      h('div',{className:'gender-select'},
+        h('button',{className:'gender-btn '+(gender==='M'?'active-m':''),onClick:()=>setGender('M')},'♂ Homme'),
+        h('button',{className:'gender-btn '+(gender==='F'?'active-f':''),onClick:()=>setGender('F')},'♀ Femme')
+      )
+    ),
+    h('button',{className:'btn btn-primary btn-sm',disabled:!name.trim(),onClick:add},'+ Ajouter')
+  );
+}
+
+function App(){
+  const [screen,setScreen]=useState('home');
+  const [tab,setTab]=useState('courts');
+  const [game,setGame]=useState(null);
+  const [savedGames,setSavedGames]=useState([]);
+  const [showLoad,setShowLoad]=useState(false);
+  const [numPad,setNumPad]=useState(null);
+  const [setupStep,setSetupStep]=useState(0);
+  const [gameName,setGameName]=useState('Animation '+new Date().toLocaleDateString('fr'));
+  const [courts,setCourts]=useState(2);
+  const [players,setPlayers]=useState([]);
+  const [newName,setNewName]=useState('');
+  const [newGender,setNewGender]=useState('M');
+  const [mixMode,setMixMode]=useState('mixed');
+  const [bonusMode,setBonusMode]=useState(true);
+
+  useEffect(()=>{setSavedGames(loadSavedGames());},[]);
+
+  const startNew=()=>{
+    setSetupStep(0);setPlayers([]);setNewName('');setNewGender('M');setMixMode('mixed');setBonusMode(true);
+    setGameName('Animation '+new Date().toLocaleDateString('fr'));
+    setScreen('setup');
+  };
+
+  const addPlayer=()=>{
+    if(!newName.trim())return;
+    setPlayers(p=>[...p,{id:genId(),name:newName.trim(),gender:newGender}]);
+    setNewName('');
+  };
+
+  const removePlayer=id=>setPlayers(p=>p.filter(x=>x.id!==id));
+
+  const launchGame=()=>{
+    const hasMales=players.some(p=>p.gender==='M');
+    const hasFemales=players.some(p=>p.gender==='F');
+    const finalMix=(hasMales&&hasFemales)?mixMode:'none';
+    const firstRound=buildRound(players,[],courts,finalMix);
+    const g={id:genId(),name:gameName,courts,players,rounds:[firstRound],mixMode:finalMix,bonusMode,created:Date.now()};
+    setGame(g);saveGame(g);setScreen('game');setTab('courts');
+  };
+
+  const nextRound=()=>{
+    const newRound=buildRound(game.players,game.rounds,game.courts,game.mixMode);
+    const updated={...game,rounds:[...game.rounds,newRound]};
+    setGame(updated);saveGame(updated);
+    window.scrollTo(0,0);
+  };
+
+  const saveCurrentGame=()=>{
+    const saves=loadSavedGames();
+    const idx=saves.findIndex(s=>s.id===game.id);
+    const saved={...game,savedAt:Date.now()};
+    if(idx>=0)saves[idx]=saved;else saves.unshift(saved);
+    saves.splice(8);
+    saveSavedGames(saves);setSavedGames([...saves]);
+  };
+
+  const deleteSave=id=>{
+    const saves=loadSavedGames().filter(s=>s.id!==id);
+    saveSavedGames(saves);setSavedGames(saves);
+  };
+
+  const loadSaved=g=>{setGame(g);setScreen('game');setTab('courts');setShowLoad(false);};
+
+  const openNumPad=(matchId,team,label)=>{
+    const m=game.rounds[game.rounds.length-1].matches.find(x=>x.id===matchId);
+    setNumPad({matchId,team,label,value:team===1?m.score1:m.score2});
+  };
+
+  const setScore=(matchId,team,val)=>{
+    const rounds=game.rounds.map((r,ri)=>{
+      if(ri!==game.rounds.length-1)return r;
+      const matches=r.matches.map(m=>{
+        if(m.id!==matchId)return m;
+        const updated={...m};
+        if(team===1)updated.score1=val;else updated.score2=val;
+        if(updated.score1!==''&&updated.score2!=='')updated.done=true;
+        return updated;
+      });
+      return{...r,matches};
+    });
+    const updated={...game,rounds};setGame(updated);saveGame(updated);
+  };
+
+  const editScore=matchId=>{
+    const rounds=game.rounds.map((r,ri)=>{
+      if(ri!==game.rounds.length-1)return r;
+      const matches=r.matches.map(m=>{
+        if(m.id!==matchId)return m;
+        return{...m,score1:'',score2:'',done:false};
+      });
+      return{...r,matches};
+    });
+    const updated={...game,rounds};setGame(updated);saveGame(updated);
+  };
+
+  const pName=id=>(game?.players||[]).find(p=>p.id===id)?.name||'?';
+  const pGender=id=>(game?.players||[]).find(p=>p.id===id)?.gender||'M';
+
+  const currentRound=game?.rounds?.[game.rounds.length-1];
+  const roundsDone=game?.rounds?.filter(r=>r.matches.every(m=>m.done)).length||0;
+  const allDone=currentRound?.matches.every(m=>m.done);
+  const standings=game?computeStandings(game.players,game.rounds,game.bonusMode):[];
+
+  // ── HOME ──
+  if(screen==='home'){
+    return h('div',{className:'screen active',style:{justifyContent:'space-between'}},
+      h('div',null,
+        h('div',{className:'hero'},
+          h('div',{style:{fontSize:48,marginBottom:12}},'🎾'),
+          h('div',{className:'hero-title'},'Doubles',h('br',null),h('span',null,'Pro')),
+          h('div',{className:'hero-sub'},'Organisation intelligente\nRotation automatique des partenaires\nClassement individuel en temps réel')
+        ),
+        h('div',{className:'section'},
+          h('div',{className:'section-title'},'Démarrer'),
+          h('button',{className:'btn btn-primary',style:{marginBottom:10},onClick:startNew},'+ Nouvelle animation'),
+          h('button',{className:'btn btn-secondary',onClick:()=>{setSavedGames(loadSavedGames());setShowLoad(true);}},'📁 Charger une session')
+        )
+      ),
+      h('div',{className:'section',style:{paddingTop:0}},
+        h('div',{style:{fontSize:11,color:'var(--gray)',textAlign:'center',lineHeight:1.8,padding:'12px',background:'var(--card)',borderRadius:12,border:'1px solid rgba(255,255,255,0.05)'}},
+          'Victoire 3 pts · Défaite 1 pt',h('br',null),
+          'Bonus défaite serrée & victoire écrasante',h('br',null),
+          '⚡ Données sauvegardées localement'
+        )
+      ),
+      showLoad&&h('div',{className:'modal-overlay',onClick:e=>{if(e.target===e.currentTarget)setShowLoad(false);}},
+        h('div',{className:'modal'},
+          h('div',{className:'modal-title'},'Sessions sauvegardées'),
+          h('div',{className:'modal-sub'},'Reprendre une animation existante'),
+          savedGames.length===0?
+            h('div',{style:{color:'var(--gray)',fontSize:14,textAlign:'center',padding:'24px 0'}},'Aucune session sauvegardée'):
+            savedGames.map(g=>h('div',{key:g.id,style:{display:'flex',gap:8,alignItems:'center',marginBottom:8}},
+              h('div',{className:'saved-item',style:{flex:1,marginBottom:0},onClick:()=>loadSaved(g)},
+                h('div',null,
+                  h('div',{style:{fontSize:14,fontWeight:700}},g.name),
+                  h('div',{style:{fontSize:12,color:'var(--gray)',marginTop:3}},
+                    (g.players?.length||0)+' joueurs · '+( g.rounds?.length||0)+' tours · '+g.courts+' terrains'
+                  ),
+                  h('div',{style:{fontSize:11,color:'var(--gray)',marginTop:2}},
+                    g.savedAt?'Sauvé '+new Date(g.savedAt).toLocaleDateString('fr'):''
+                  )
+                ),
+                h('span',{style:{color:'var(--green)',fontSize:22,marginLeft:8}},'›')
+              ),
+              h('button',{className:'delete-btn',style:{flexShrink:0},onClick:e=>{e.stopPropagation();deleteSave(g.id);}},'×')
+            )),
+          h('button',{className:'btn btn-ghost',style:{marginTop:16},onClick:()=>setShowLoad(false)},'Fermer')
+        )
+      )
+    );
+  }
+
+  // ── SETUP ──
+  if(screen==='setup'){
+    return h('div',{className:'screen active'},
+      h('div',{className:'header'},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          h('button',{className:'btn-ghost btn',style:{width:'auto',padding:'8px 0'},onClick:()=>setScreen('home')},'← Retour'),
+          h('div',{style:{fontSize:13,color:'var(--gray)'}},'Étape '+(setupStep+1)+' / 3')
+        ),
+        h('div',{className:'progress-bar',style:{marginTop:12}},
+          h('div',{className:'progress-fill',style:{width:((setupStep+1)/3*100)+'%'}})
+        )
+      ),
+      h('div',{className:'section',style:{flex:1}},
+        // Step 0: Name + courts
+        setupStep===0&&h('div',null,
+          h('div',{className:'section-title'},'Informations générales'),
+          h('div',{className:'input-group'},
+            h('div',{className:'input-label'},'Nom de la session'),
+            h('input',{className:'input',value:gameName,onChange:e=>setGameName(e.target.value),placeholder:'Ex: Tournoi club juin'})
+          ),
+          h('div',{className:'input-group'},
+            h('div',{className:'input-label'},'Nombre de terrains disponibles'),
+            h('div',{style:{display:'flex',gap:8}},
+              [1,2,3,4,5,6].map(n=>h('button',{key:n,onClick:()=>setCourts(n),
+                style:{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid '+(courts===n?'var(--green-mid)':'rgba(255,255,255,0.1)'),background:courts===n?'rgba(74,222,128,0.15)':'var(--card2)',color:courts===n?'var(--green)':'var(--gray)',fontWeight:700,fontSize:16,cursor:'pointer',transition:'all 0.15s'}
+              },n))
+            )
+          ),
+          h('button',{className:'btn btn-primary',style:{marginTop:8},onClick:()=>setSetupStep(1)},'Suivant →')
+        ),
+        // Step 1: Players
+        setupStep===1&&h('div',null,
+          h('div',{className:'section-title'},'Inscrire les joueurs (minimum 4)'),
+          h('div',{className:'card'},
+            h('div',{className:'input-group',style:{marginBottom:10}},
+              h('div',{className:'input-label'},'Prénom'),
+              h('input',{className:'input',value:newName,onChange:e=>setNewName(e.target.value),
+                placeholder:'Prénom du joueur',
+                onKeyDown:e=>e.key==='Enter'&&addPlayer()})
+            ),
+            h('div',{className:'input-group',style:{marginBottom:12}},
+              h('div',{className:'input-label'},'Genre'),
+              h('div',{className:'gender-select'},
+                h('button',{className:'gender-btn '+(newGender==='M'?'active-m':''),onClick:()=>setNewGender('M')},'♂ Homme'),
+                h('button',{className:'gender-btn '+(newGender==='F'?'active-f':''),onClick:()=>setNewGender('F')},'♀ Femme')
+              )
+            ),
+            h('button',{className:'btn btn-primary btn-sm',onClick:addPlayer,disabled:!newName.trim()},'+ Ajouter le joueur')
+          ),
+          players.length>0&&h('div',null,
+            h('div',{className:'section-title',style:{marginTop:4}},players.length+' joueur'+(players.length>1?'s':'')+' inscrit'+(players.length>1?'s':'')),
+            players.map(p=>h('div',{key:p.id,className:'player-item'},
+              h('div',{className:'avatar '+(p.gender==='M'?'avatar-m':'avatar-f')},p.name[0].toUpperCase()),
+              h('div',{style:{flex:1}},
+                h('div',{className:'player-name'},p.name),
+                h('div',{className:'player-gender'},p.gender==='M'?'Homme':'Femme')
+              ),
+              h('button',{className:'delete-btn',onClick:()=>removePlayer(p.id)},'×')
+            ))
+          ),
+          h('div',{style:{display:'flex',gap:8,marginTop:12}},
+            h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'14px 20px'},onClick:()=>setSetupStep(0)},'←'),
+            h('button',{className:'btn btn-primary',style:{flex:1},disabled:players.length<4,onClick:()=>setSetupStep(2)},'Suivant → ('+players.length+' joueurs)')
+          )
+        ),
+        // Step 2: Options
+        setupStep===2&&h('div',null,
+          h('div',{className:'section-title'},'Options de l\'animation'),
+          players.some(p=>p.gender==='M')&&players.some(p=>p.gender==='F')&&h('div',{className:'card',style:{marginBottom:16}},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:14,color:'#fff'}},'Composition des équipes mixtes'),
+            [
+              {v:'mixed',l:'Équipes mixtes',s:'1 homme + 1 femme par équipe'},
+              {v:'most',l:'Mixte si possible',s:'Priorité au mixte, mais flexible'},
+              {v:'none',l:'Libre',s:'Sans contrainte de genre'}
+            ].map(o=>h('div',{key:o.v,onClick:()=>setMixMode(o.v),
+              style:{display:'flex',alignItems:'center',gap:12,padding:'12px 10px',borderRadius:10,
+                background:mixMode===o.v?'rgba(74,222,128,0.1)':'transparent',
+                border:'1px solid '+(mixMode===o.v?'rgba(74,222,128,0.3)':'transparent'),
+                cursor:'pointer',marginBottom:6,transition:'all 0.15s'}},
+              h('div',{style:{width:20,height:20,borderRadius:'50%',border:'2px solid '+(mixMode===o.v?'var(--green)':'rgba(255,255,255,0.25)'),
+                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+                mixMode===o.v&&h('div',{style:{width:10,height:10,borderRadius:'50%',background:'var(--green)'}})
+              ),
+              h('div',null,
+                h('div',{style:{fontSize:14,fontWeight:600,color:'#fff'}},o.l),
+                h('div',{style:{fontSize:12,color:'var(--gray)',marginTop:2}},o.s)
+              )
+            ))
+          ),
+          h('div',{className:'card'},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Système de points bonus'),
+            h('div',{className:'toggle-row'},
+              h('div',null,
+                h('div',{className:'toggle-label'},'Activer les points bonus'),
+                h('div',{className:'toggle-sub'},'En plus de la victoire/défaite standard')
+              ),
+              h('button',{className:'toggle '+(bonusMode?'on':''),onClick:()=>setBonusMode(b=>!b)})
+            ),
+            bonusMode&&h('div',{style:{marginTop:14,padding:'12px',background:'var(--card2)',borderRadius:10}},
+              h('div',{style:{fontSize:12,color:'var(--gray)',lineHeight:1.9}},
+                h('span',{style:{color:'var(--green)',fontWeight:700}},'🏆 Victoire = 3 pts'),h('br',null),
+                h('span',{style:{color:'var(--gray)'}},'Défaite = 1 pt'),h('br',null),
+                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥ 40% des pts) = +1 bonus'),h('br',null),
+                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (adv. ≤ 30%) = +1 bonus')
+              )
+            )
+          ),
+          h('div',{style:{display:'flex',gap:8,marginTop:12}},
+            h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'14px 20px'},onClick:()=>setSetupStep(1)},'←'),
+            h('button',{className:'btn btn-primary',style:{flex:1},onClick:launchGame},'🎾 Lancer l\'animation !')
+          )
+        )
+      )
+    );
+  }
+
+  // ── GAME ──
+  if(screen==='game'){
+    return h('div',{className:'screen active'},
+      h('div',{className:'header'},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:12,borderBottom:'1px solid rgba(255,255,255,0.06)'}},
+          h('button',{className:'btn-ghost btn',style:{width:'auto',padding:'8px 0',fontSize:13},
+            onClick:()=>{saveCurrentGame();setScreen('home');}},'← Accueil'),
+          h('div',{style:{fontSize:13,fontWeight:700,color:'#fff',letterSpacing:-0.3}},game.name),
+          h('button',{className:'btn btn-secondary btn-sm',style:{width:'auto',fontSize:12},onClick:saveCurrentGame},'💾')
+        )
+      ),
+      h('div',{className:'section',style:{flex:1}},
+        // TERRAINS TAB
+        tab==='courts'&&h('div',null,
+          h('div',{className:'stat-row'},
+            h('div',{className:'stat-box'},
+              h('div',{className:'stat-num'},game.rounds.length),
+              h('div',{className:'stat-label'},'Tours joués')
+            ),
+            h('div',{className:'stat-box'},
+              h('div',{className:'stat-num'},roundsDone),
+              h('div',{className:'stat-label'},'Terminés')
+            ),
+            h('div',{className:'stat-box'},
+              h('div',{className:'stat-num'},game.courts),
+              h('div',{className:'stat-label'},'Terrains')
+            )
+          ),
+          currentRound&&h('div',null,
+            h('div',{className:'round-header'},
+              h('div',{className:'round-num'},'Tour '+game.rounds.length),
+              h('div',{className:'round-sub'},
+                allDone?'✓ Tour terminé — lancez le suivant':
+                (currentRound.matches.filter(m=>m.done).length)+'/'+currentRound.matches.length+' matchs terminés'
+              )
+            ),
+            currentRound.matches.map(m=>{
+              const s1int=parseInt(m.score1)||0,s2int=parseInt(m.score2)||0;
+              const win1=m.done&&s1int>s2int,win2=m.done&&s2int>s1int;
+              return h('div',{key:m.id,className:'court-card'},
+                h('div',{className:'court-header'},
+                  h('div',{style:{fontSize:15,fontWeight:700}},
+                    h('span',{style:{color:'var(--gray)',fontSize:12,marginRight:4}},'Terrain'),m.court
+                  ),
+                  h('div',{className:'court-badge '+(m.done?'court-badge-done':'')},m.done?'✓ Terminé':'⚡ En jeu')
+                ),
+                h('div',{className:'vs-row'},
+                  h('div',{className:'team-block',
+                    style:{border:win1?'1.5px solid rgba(74,222,128,0.4)':'1px solid rgba(255,255,255,0.04)'}},
+                    h('div',{className:'team-label'},'Équipe A'),
+                    h('div',{className:'team-player'},
+                      h('div',{className:'avatar '+(pGender(m.t1p1)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t1p1)[0]),
+                      pName(m.t1p1)
+                    ),
+                    h('div',{className:'team-player'},
+                      h('div',{className:'avatar '+(pGender(m.t1p2)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t1p2)[0]),
+                      pName(m.t1p2)
+                    ),
+                    win1&&h('div',{className:'winner-badge'},'🏆 Victoire')
+                  ),
+                  h('div',{className:'vs-sep'},'VS'),
+                  h('div',{className:'team-block',
+                    style:{border:win2?'1.5px solid rgba(74,222,128,0.4)':'1px solid rgba(255,255,255,0.04)'}},
+                    h('div',{className:'team-label'},'Équipe B'),
+                    h('div',{className:'team-player'},
+                      h('div',{className:'avatar '+(pGender(m.t2p1)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t2p1)[0]),
+                      pName(m.t2p1)
+                    ),
+                    h('div',{className:'team-player'},
+                      h('div',{className:'avatar '+(pGender(m.t2p2)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t2p2)[0]),
+                      pName(m.t2p2)
+                    ),
+                    win2&&h('div',{className:'winner-badge'},'🏆 Victoire')
+                  )
+                ),
+                m.done?
+                  h('div',{className:'score-saved'},
+                    h('div',null,
+                      h('div',{className:'score-display'},m.score1,' — ',m.score2),
+                      h('div',{className:'save-notice'},'Score enregistré')
+                    ),
+                    h('button',{className:'btn btn-ghost btn-sm',
+                      style:{width:'auto',color:'var(--gray)',fontSize:12,padding:'6px 10px'},
+                      onClick:()=>editScore(m.id)},'✏️ Modifier')
+                  ):
+                  h('div',null,
+                    h('div',{style:{fontSize:11,color:'var(--gray)',textAlign:'center',marginTop:14,marginBottom:6,letterSpacing:1}},'SAISIR LE SCORE'),
+                    h('div',{className:'score-row'},
+                      h('div',{style:{flex:1}},
+                        h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQ. A'),
+                        h('div',{className:'score-input',onClick:()=>openNumPad(m.id,1,'Score — Équipe A'),
+                          style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:52,cursor:'pointer',userSelect:'none'}},
+                          m.score1||h('span',{style:{color:'rgba(255,255,255,0.2)',fontSize:14}},'Tap'))
+                      ),
+                      h('div',{className:'score-vs'},'—'),
+                      h('div',{style:{flex:1}},
+                        h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQ. B'),
+                        h('div',{className:'score-input',onClick:()=>openNumPad(m.id,2,'Score — Équipe B'),
+                          style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:52,cursor:'pointer',userSelect:'none'}},
+                          m.score2||h('span',{style:{color:'rgba(255,255,255,0.2)',fontSize:14}},'Tap'))
+                      )
+                    )
+                  )
+              );
+            }),
+            currentRound.idle.length>0&&h('div',{className:'idle-player'},
+              h('div',{className:'idle-title'},'⏸ En attente ce tour'),
+              currentRound.idle.map(id=>h('div',{key:id,className:'idle-player-name'},
+                h('div',{className:'avatar '+(pGender(id)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:9}},pName(id)[0]),
+                pName(id)
+              ))
+            ),
+            allDone&&h('button',{className:'btn btn-primary',style:{marginTop:20},onClick:nextRound},
+              '▶ Lancer le tour '+(game.rounds.length+1)
+            )
+          )
+        ),
+        // CLASSEMENT TAB
+        tab==='standings'&&h('div',null,
+          h('div',{className:'section-title'},'Classement individuel'),
+          game.bonusMode&&h('div',{className:'info-banner'},
+            '🏆 Victoire = 3 pts · Défaite = 1 pt\n',h('br',null),
+            '⭐ Défaite serrée (≥40%) = +1 · 💪 Victoire écrasante (≤30%) = +1'
+          ),
+          standings.length===0?
+            h('div',{style:{color:'var(--gray)',fontSize:14,textAlign:'center',padding:'32px 0'}},'Les scores apparaîtront ici après le premier match.'):
+            standings.map((s,i)=>h('div',{key:s.id,className:'rank-item'},
+              h('div',{className:'rank-pos '+(i===0?'gold':i===1?'silver':i===2?'bronze':'')},i+1),
+              h('div',{className:'avatar '+(s.gender==='M'?'avatar-m':'avatar-f'),style:{width:32,height:32,fontSize:13}},s.name[0]),
+              h('div',{style:{flex:1}},
+                h('div',{className:'rank-name'},s.name),
+                h('div',{className:'rank-stats'},
+                  h('span',{className:'badge badge-win'},s.wins+'V'),
+                  ' ',
+                  h('span',{className:'badge badge-loss'},s.losses+'D'),
+                  ' ',s.matches+' match'+(s.matches>1?'s':''),
+                  s.bonusEarned>0&&h('span',null,' · ',h('span',{style:{color:'var(--gold)'}},'+'+s.bonusEarned+' bonus'))
+                )
+              ),
+              h('div',{style:{textAlign:'right'}},
+                h('div',{className:'rank-pts'},s.pts),
+                h('div',{className:'rank-pts-label'},'points')
+              )
+            ))
+        ),
+        // JOUEURS TAB
+        tab==='players'&&h('div',null,
+          h('div',{className:'section-title'},game.players.length+' joueurs inscrits'),
+          game.players.map((p,idx)=>{
+            const st=standings.find(s=>s.id===p.id)||{matches:0,pts:0,wins:0,losses:0};
+            return h('div',{key:p.id,className:'player-item'},
+              h('div',{className:'avatar '+(p.gender==='M'?'avatar-m':'avatar-f')},p.name[0]),
+              h('div',{style:{flex:1}},
+                h('div',{className:'player-name'},p.name),
+                h('div',{className:'player-gender'},
+                  p.gender==='M'?'Homme':'Femme',
+                  ' · ',st.matches,' match'+(st.matches>1?'s':'')
+                )
+              ),
+              h('div',{style:{textAlign:'right'}},
+                h('div',{style:{fontSize:18,fontWeight:800,color:'var(--green)'}},st.pts,h('span',{style:{fontSize:11,color:'var(--gray)',fontWeight:400}},' pts')),
+                h('div',{style:{fontSize:11,color:'var(--gray)'}},st.wins+'V '+st.losses+'D')
+              )
+            );
+          })
+        )
+      ),
+        // RÉGLAGES TAB
+        tab==='settings'&&h('div',null,
+          h('div',{className:'section-title'},'Réglages en cours de tournoi'),
+          h('div',{className:'info-banner'},'Les modifications s\'appliquent dès le prochain tour généré.'),
+
+          // Terrains
+          h('div',{className:'card'},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Nombre de terrains'),
+            h('div',{style:{display:'flex',gap:8}},
+              [1,2,3,4,5,6].map(n=>h('button',{key:n,onClick:()=>{const u={...game,courts:n};setGame(u);saveGame(u);},
+                style:{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid '+(game.courts===n?'var(--green-mid)':'rgba(255,255,255,0.1)'),
+                  background:game.courts===n?'rgba(74,222,128,0.15)':'var(--card2)',
+                  color:game.courts===n?'var(--green)':'var(--gray)',fontWeight:700,fontSize:16,cursor:'pointer',transition:'all 0.15s'}
+              },n))
+            )
+          ),
+
+          // Mixité
+          game.players.some(p=>p.gender==='M')&&game.players.some(p=>p.gender==='F')&&h('div',{className:'card'},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:14,color:'#fff'}},'Composition des équipes'),
+            [
+              {v:'mixed',l:'Équipes mixtes',s:'1 homme + 1 femme par équipe'},
+              {v:'most',l:'Mixte si possible',s:'Priorité au mixte, mais flexible'},
+              {v:'none',l:'Libre',s:'Sans contrainte de genre'}
+            ].map(o=>h('div',{key:o.v,onClick:()=>{const u={...game,mixMode:o.v};setGame(u);saveGame(u);},
+              style:{display:'flex',alignItems:'center',gap:12,padding:'12px 10px',borderRadius:10,
+                background:game.mixMode===o.v?'rgba(74,222,128,0.1)':'transparent',
+                border:'1px solid '+(game.mixMode===o.v?'rgba(74,222,128,0.3)':'transparent'),
+                cursor:'pointer',marginBottom:6,transition:'all 0.15s'}},
+              h('div',{style:{width:20,height:20,borderRadius:'50%',border:'2px solid '+(game.mixMode===o.v?'var(--green)':'rgba(255,255,255,0.25)'),
+                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+                game.mixMode===o.v&&h('div',{style:{width:10,height:10,borderRadius:'50%',background:'var(--green)'}})
+              ),
+              h('div',null,
+                h('div',{style:{fontSize:14,fontWeight:600,color:'#fff'}},o.l),
+                h('div',{style:{fontSize:12,color:'var(--gray)',marginTop:2}},o.s)
+              )
+            ))
+          ),
+
+          // Bonus
+          h('div',{className:'card'},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Points bonus'),
+            h('div',{className:'toggle-row',style:{borderBottom:'none'}},
+              h('div',null,
+                h('div',{className:'toggle-label'},'Activer les bonus'),
+                h('div',{className:'toggle-sub'},'Défaite serrée / Victoire écrasante')
+              ),
+              h('button',{className:'toggle '+(game.bonusMode?'on':''),onClick:()=>{const u={...game,bonusMode:!game.bonusMode};setGame(u);saveGame(u);}})
+            ),
+            game.bonusMode&&h('div',{style:{marginTop:12,padding:'12px',background:'var(--card2)',borderRadius:10}},
+              h('div',{style:{fontSize:12,color:'var(--gray)',lineHeight:1.9}},
+                h('span',{style:{color:'var(--green)',fontWeight:700}},'🏆 Victoire = 3 pts'),h('br',null),
+                'Défaite = 1 pt',h('br',null),
+                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥40%) = +1'),h('br',null),
+                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (≤30%) = +1')
+              )
+            )
+          ),
+
+          // Ajouter un joueur
+          h(AddPlayerPanel,{game,setGame}),
+
+          // Liste joueurs avec suppression
+          h('div',{className:'card'},
+            h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},game.players.length+' joueurs inscrits'),
+            game.players.map(p=>{
+              const st=standings.find(s=>s.id===p.id)||{matches:0};
+              return h('div',{key:p.id,className:'player-item',style:{marginBottom:6}},
+                h('div',{className:'avatar '+(p.gender==='M'?'avatar-m':'avatar-f')},p.name[0]),
+                h('div',{style:{flex:1}},
+                  h('div',{className:'player-name'},p.name),
+                  h('div',{className:'player-gender'},p.gender==='M'?'Homme':'Femme',' · ',st.matches,' match'+(st.matches>1?'s':''))
+                ),
+                h('button',{className:'delete-btn',title:'Retirer ce joueur',
+                  onClick:()=>{if(game.players.length<=4)return alert('Minimum 4 joueurs requis.');
+                    const u={...game,players:game.players.filter(x=>x.id!==p.id)};setGame(u);saveGame(u);}
+                },'×')
+              );
+            })
+          ),
+
+          h('div',{style:{height:8}})
+        ),
+      // TAB BAR
+      h('div',{className:'tab-bar'},
+        [
+          {id:'courts',icon:'🎾',label:'Terrains'},
+          {id:'standings',icon:'🏆',label:'Classement'},
+          {id:'players',icon:'👥',label:'Joueurs'},
+          {id:'settings',icon:'⚙️',label:'Réglages'}
+        ].map(t=>h('button',{key:t.id,className:'tab '+(tab===t.id?'active':''),onClick:()=>setTab(t.id)},
+          h('span',{className:'tab-icon'},t.icon),
+          h('span',null,t.label)
+        ))
+      ),
+      numPad&&h(NumPad,{
+        value:numPad.value,
+        label:numPad.label,
+        onChange:v=>setScore(numPad.matchId,numPad.team,v),
+        onClose:()=>setNumPad(null)
+      })
+    );
+  }
+
+  return h('div',{style:{padding:20,color:'var(--gray)'}},'Chargement...');
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
