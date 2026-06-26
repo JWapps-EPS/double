@@ -325,17 +325,17 @@ function computeStandings(players,rounds,bonusMode){
         stats[id].matches++;
         if(s1>s2){stats[id].wins++;stats[id].pts+=3;}
         else{stats[id].losses++;stats[id].pts+=1;
-          if(bonusMode&&total>0&&s1/total>=0.4){stats[id].pts+=1;stats[id].bonusEarned++;}
+          if(bonusMode&&total>0&&s1/total>=0.44){stats[id].pts+=1;stats[id].bonusEarned++;}
         }
-        if(bonusMode&&s1>s2&&total>0&&s2/total<=0.3){stats[id].pts+=1;stats[id].bonusEarned++;}
+        if(bonusMode&&s1>s2&&total>0&&s2/total<=0.2){stats[id].pts+=1;stats[id].bonusEarned++;}
       });
       t2.forEach(id=>{if(!stats[id])return;
         stats[id].matches++;
         if(s2>s1){stats[id].wins++;stats[id].pts+=3;}
         else{stats[id].losses++;stats[id].pts+=1;
-          if(bonusMode&&total>0&&s2/total>=0.4){stats[id].pts+=1;stats[id].bonusEarned++;}
+          if(bonusMode&&total>0&&s2/total>=0.44){stats[id].pts+=1;stats[id].bonusEarned++;}
         }
-        if(bonusMode&&s2>s1&&total>0&&s1/total<=0.3){stats[id].pts+=1;stats[id].bonusEarned++;}
+        if(bonusMode&&s2>s1&&total>0&&s1/total<=0.2){stats[id].pts+=1;stats[id].bonusEarned++;}
       });
     });
   });
@@ -803,8 +803,8 @@ function App(){
               h('div',{style:{fontSize:12,color:'var(--gray)',lineHeight:1.9}},
                 h('span',{style:{color:'var(--green)',fontWeight:700}},'🏆 Victoire = 3 pts'),h('br',null),
                 h('span',{style:{color:'var(--gray)'}},'Défaite = 1 pt'),h('br',null),
-                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥ 40% des pts) = +1 bonus'),h('br',null),
-                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (adv. ≤ 30%) = +1 bonus')
+                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥ 44% des pts) = +1 bonus'),h('br',null),
+                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (adv. ≤ 20%) = +1 bonus')
               )
             )
           ),
@@ -874,7 +874,7 @@ function App(){
           h('div',{className:'section-title'},'Classement individuel'),
           game.bonusMode&&h('div',{className:'info-banner'},
             '🏆 Victoire = 3 pts · Défaite = 1 pt\n',h('br',null),
-            '⭐ Défaite serrée (≥40%) = +1 · 💪 Victoire écrasante (≤30%) = +1'
+            '⭐ Défaite serrée (≥44%) = +1 · 💪 Victoire écrasante (≤20%) = +1'
           ),
           standings.length===0?
             h('div',{style:{color:'var(--gray)',fontSize:14,textAlign:'center',padding:'32px 0'}},'Les scores apparaîtront ici après le premier match.'):
@@ -896,27 +896,6 @@ function App(){
                 h('div',{className:'rank-pts-label'},'points')
               )
             ))
-        ),
-        // JOUEURS TAB
-        tab==='players'&&h('div',null,
-          h('div',{className:'section-title'},game.players.length+' joueurs inscrits'),
-          game.players.map((p,idx)=>{
-            const st=standings.find(s=>s.id===p.id)||{matches:0,pts:0,wins:0,losses:0};
-            return h('div',{key:p.id,className:'player-item'},
-              h('div',{className:'avatar '+(p.gender==='M'?'avatar-m':'avatar-f')},p.name[0]),
-              h('div',{style:{flex:1}},
-                h('div',{className:'player-name'},p.name),
-                h('div',{className:'player-gender'},
-                  p.gender==='M'?'Homme':'Femme',
-                  ' · ',st.matches,' match'+(st.matches>1?'s':'')
-                )
-              ),
-              h('div',{style:{textAlign:'right'}},
-                h('div',{style:{fontSize:18,fontWeight:800,color:'var(--green)'}},st.pts,h('span',{style:{fontSize:11,color:'var(--gray)',fontWeight:400}},' pts')),
-                h('div',{style:{fontSize:11,color:'var(--gray)'}},st.wins+'V '+st.losses+'D')
-              )
-            );
-          })
         ),
         // HISTORIQUE TAB
         tab==='history'&&h('div',null,
@@ -999,8 +978,8 @@ function App(){
               h('div',{style:{fontSize:12,color:'var(--gray)',lineHeight:1.9}},
                 h('span',{style:{color:'var(--green)',fontWeight:700}},'🏆 Victoire = 3 pts'),h('br',null),
                 'Défaite = 1 pt',h('br',null),
-                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥40%) = +1'),h('br',null),
-                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (≤30%) = +1')
+                h('span',{style:{color:'var(--gold)',fontWeight:600}},'⭐ Défaite serrée (≥44%) = +1'),h('br',null),
+                h('span',{style:{color:'var(--accent)',fontWeight:600}},'💪 Victoire écrasante (≤20%) = +1')
               )
             )
           ),
@@ -1033,9 +1012,8 @@ function App(){
       // TAB BAR
       h('div',{className:'tab-bar'},
         [
-          {id:'courts',icon:'🎾',label:'Terrains'},
+          {id:'courts',icon:'🎾',label:'Matchs'},
           {id:'standings',icon:'🏆',label:'Classement'},
-          {id:'players',icon:'👥',label:'Joueurs'},
           {id:'history',icon:'📋',label:'Historique'},
           {id:'settings',icon:'⚙️',label:'Réglages'}
         ].map(t=>h('button',{key:t.id,className:'tab '+(tab===t.id?'active':''),onClick:()=>setTab(t.id)},
