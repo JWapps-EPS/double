@@ -119,6 +119,8 @@
   .round-sub{font-size:12px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end}
   .modal{background:#111d35;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;border-top:1px solid rgba(255,255,255,0.1);max-height:85vh;overflow-y:auto}
+  .modal-overlay.centered{align-items:center;justify-content:center}
+  .modal.floating{border-radius:20px;padding:20px;width:calc(100% - 32px);max-width:360px;max-height:90vh;overflow-y:auto;border:1px solid rgba(255,255,255,0.1)}
   .modal-title{font-size:18px;font-weight:700;margin-bottom:4px}
   .modal-sub{font-size:13px;color:var(--gray);margin-bottom:20px}
   .saved-item{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.05)}
@@ -130,6 +132,13 @@
   .score-saved{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-top:12px}
   .score-display{font-size:22px;font-weight:800;color:var(--green)}
   .save-notice{font-size:11px;color:var(--gray);margin-top:4px}
+  .result-bar{border-radius:12px;padding:12px 14px;margin-top:12px;display:flex;align-items:center;gap:8px}
+  .result-score{font-size:28px;font-weight:900;letter-spacing:-1px;flex:0 0 auto;text-align:center;min-width:80px}
+  .result-team{flex:1;min-width:0}
+  .result-team-name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result-pts{font-size:13px;font-weight:700;margin-top:3px}
+  .result-rank{font-size:11px;color:var(--gray);margin-top:1px}
+  .result-edit{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
   .history-item{background:var(--card2);border-radius:10px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04)}
   .history-round{font-size:10px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
   .hist-row{display:flex;align-items:center;gap:10px;background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04)}
@@ -342,49 +351,121 @@ function computeStandings(players,rounds,bonusMode){
   return Object.values(stats).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||a.losses-b.losses);
 }
 
-function EditMatchModal({match,pName,onSave,onClose}){
-  const [s1,setS1]=useState(match.score1||'');
-  const [s2,setS2]=useState(match.score2||'');
-  const [active,setActive]=useState(1); // which team field is being edited
-  const press=k=>{
-    const setCur=active===1?setS1:setS2;
-    if(k==='⌫'){setCur(c=>c.slice(0,-1));}
-    else{setCur(c=>c.length<3?c+k:c);}
+function EditMatchModal({match,pName,onSave,onClose,courtColor:c}){
+  const col=c||{hex:'#22c55e',rgb:'34,197,94'};
+  const [step,setStep]=useState(1); // 1=score A, 2=score B, 3=confirm
+  const [s1,setS1]=useState('');
+  const [s2,setS2]=useState('');
+
+  const teamA=pName(match.t1p1)+' & '+pName(match.t1p2);
+  const teamB=pName(match.t2p1)+' & '+pName(match.t2p2);
+
+  const press=(val,setVal)=>k=>{
+    if(k==='⌫') setVal(v=>v.slice(0,-1));
+    else if(val.length<3) setVal(v=>v+k);
   };
-  const canSave=s1!==''&&s2!==''&&s1!==s2;
-  return h('div',{className:'modal-overlay',onClick:e=>{if(e.target===e.currentTarget)onClose();}},
-    h('div',{className:'modal'},
-      h('div',{className:'modal-title'},'Modifier le score'),
-      h('div',{className:'modal-sub'},pName(match.t1p1)+' & '+pName(match.t1p2)+' vs '+pName(match.t2p1)+' & '+pName(match.t2p2)),
-      h('div',{className:'score-row',style:{marginTop:4,marginBottom:4}},
-        h('div',{style:{flex:1}},
-          h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQUIPE A'),
-          h('div',{onClick:()=>setActive(1),
-            style:{textAlign:'center',background:active===1?'rgba(74,222,128,0.18)':'rgba(255,255,255,0.04)',
-              border:'2px solid '+(active===1?'var(--green-mid)':'rgba(255,255,255,0.08)'),
-              borderRadius:14,padding:'16px 8px',fontSize:28,fontWeight:800,color:'#fff',cursor:'pointer',minHeight:30}},
-            s1||'—')
+
+  const Keypad=({val,setVal})=>h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginTop:12}},
+    ['1','2','3','4','5','6','7','8','9','⌫','0',''].map((k,i)=>
+      k===''?h('div',{key:i}):
+      h('button',{key:k,
+        style:{
+          background:k==='⌫'?'rgba(255,255,255,0.06)':'rgba(255,255,255,0.09)',
+          border:'1px solid rgba(255,255,255,0.07)',borderRadius:9,
+          padding:'12px 4px',fontSize:18,fontWeight:700,
+          color:k==='⌫'?'var(--gray)':'#fff',cursor:'pointer'
+        },
+        onClick:()=>press(val,setVal)(k),
+        onTouchEnd:e=>{e.preventDefault();press(val,setVal)(k);}
+      },k)
+    )
+  );
+
+  // Team indicator banner — very visible, full width, colored bg
+  const TeamBanner=({team,num,color})=>h('div',{style:{
+    background:'rgba('+color.rgb+',0.22)',
+    border:'1.5px solid rgba('+color.rgb+',0.5)',
+    borderRadius:12,padding:'10px 14px',marginBottom:10,
+    display:'flex',alignItems:'center',gap:10
+  }},
+    h('div',{style:{
+      width:32,height:32,borderRadius:8,
+      background:color.hex,
+      display:'flex',alignItems:'center',justifyContent:'center',
+      fontSize:14,fontWeight:900,color:'#000',flexShrink:0
+    }},num),
+    h('div',null,
+      h('div',{style:{fontSize:10,color:color.hex,fontWeight:700,letterSpacing:1,textTransform:'uppercase'}},'Équipe '+num),
+      h('div',{style:{fontSize:13,fontWeight:700,color:'#fff'}},team)
+    )
+  );
+
+  const win1=parseInt(s1)>parseInt(s2);
+  const winner=win1?teamA:teamB;
+  const loser=win1?teamB:teamA;
+  const scoreWin=win1?s1:s2;
+  const scoreLose=win1?s2:s1;
+
+  return h('div',{className:'modal-overlay centered',onClick:e=>{if(e.target===e.currentTarget)onClose();}},
+    h('div',{className:'modal floating'},
+
+      // STEP 1
+      step===1&&h('div',null,
+        h(TeamBanner,{team:teamA,num:'A',color:col}),
+        h('div',{style:{
+          textAlign:'center',fontSize:52,fontWeight:900,letterSpacing:-2,
+          color:s1?col.hex:'rgba(255,255,255,0.15)',
+          background:'rgba('+col.rgb+',0.07)',borderRadius:12,
+          padding:'12px',marginBottom:4,minHeight:72,
+          display:'flex',alignItems:'center',justifyContent:'center'
+        }},s1||'—'),
+        h(Keypad,{val:s1,setVal:setS1}),
+        h('div',{style:{display:'flex',gap:8,marginTop:12}},
+          h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'12px 18px',fontSize:14},onClick:onClose},'✕'),
+          h('button',{className:'btn btn-primary',style:{flex:1,background:s1?col.hex:'',fontSize:15},
+            disabled:!s1,onClick:()=>setStep(2)},'Suivant →')
+        )
+      ),
+
+      // STEP 2
+      step===2&&h('div',null,
+        h(TeamBanner,{team:teamB,num:'B',color:col}),
+        h('div',{style:{
+          textAlign:'center',fontSize:52,fontWeight:900,letterSpacing:-2,
+          color:s2?col.hex:'rgba(255,255,255,0.15)',
+          background:'rgba('+col.rgb+',0.07)',borderRadius:12,
+          padding:'12px',marginBottom:4,minHeight:72,
+          display:'flex',alignItems:'center',justifyContent:'center'
+        }},s2||'—'),
+        s2!==''&&s2===s1&&h('div',{style:{color:'#ef4444',fontSize:11,textAlign:'center',marginBottom:4}},'⚠️ Scores identiques'),
+        h(Keypad,{val:s2,setVal:setS2}),
+        h('div',{style:{display:'flex',gap:8,marginTop:12}},
+          h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'12px 18px',fontSize:14},
+            onClick:()=>{setS2('');setStep(1);}},'←'),
+          h('button',{className:'btn btn-primary',style:{flex:1,background:s2&&s2!==s1?col.hex:'',fontSize:15},
+            disabled:!s2||s2===s1,onClick:()=>setStep(3)},'Valider →')
+        )
+      ),
+
+      // STEP 3 — Confirmation
+      step===3&&h('div',null,
+        h('div',{style:{fontSize:11,color:col.hex,letterSpacing:2,fontWeight:700,marginBottom:12,textAlign:'center'}},'CONFIRMATION'),
+        h('div',{style:{
+          background:'rgba('+col.rgb+',0.08)',border:'1px solid rgba('+col.rgb+',0.2)',
+          borderRadius:14,padding:'18px',textAlign:'center',marginBottom:14
+        }},
+          h('div',{style:{fontSize:13,fontWeight:800,color:'#fff',marginBottom:6}},winner),
+          h('div',{style:{fontSize:42,fontWeight:900,color:col.hex,letterSpacing:-1,margin:'8px 0'}},scoreWin+' — '+scoreLose),
+          h('div',{style:{fontSize:12,color:'var(--gray)'}},
+            'contre ',h('span',{style:{color:'#fff',fontWeight:600}},loser)
+          )
         ),
-        h('div',{className:'score-vs'},'—'),
-        h('div',{style:{flex:1}},
-          h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQUIPE B'),
-          h('div',{onClick:()=>setActive(2),
-            style:{textAlign:'center',background:active===2?'rgba(74,222,128,0.18)':'rgba(255,255,255,0.04)',
-              border:'2px solid '+(active===2?'var(--green-mid)':'rgba(255,255,255,0.08)'),
-              borderRadius:14,padding:'16px 8px',fontSize:28,fontWeight:800,color:'#fff',cursor:'pointer',minHeight:30}},
-            s2||'—')
+        h('div',{style:{fontSize:13,color:'var(--gray)',textAlign:'center',marginBottom:12}},'Ce résultat est-il correct ?'),
+        h('div',{style:{display:'flex',gap:8}},
+          h('button',{className:'btn btn-secondary',style:{flex:1,fontSize:14},onClick:()=>{setS1('');setS2('');setStep(1);}},'✕ Modifier'),
+          h('button',{className:'btn btn-primary',style:{flex:1,background:col.hex,fontSize:14},
+            onClick:()=>{onSave(s1,s2);onClose();}},'✓ Confirmer')
         )
-      ),
-      s1!==''&&s1===s2&&h('div',{style:{color:'#ef4444',fontSize:12,textAlign:'center',marginBottom:4}},'Les scores ne peuvent pas être égaux'),
-      h('div',{className:'num-pad'},
-        ['1','2','3','4','5','6','7','8','9','⌫','0',''].map((k,i)=>
-          k===''?h('div',{key:i}):
-          h('button',{key:k,className:'num-btn '+(k==='⌫'?'del':''),onClick:()=>press(k),onTouchEnd:e=>{e.preventDefault();press(k);}},k)
-        )
-      ),
-      h('div',{style:{display:'flex',gap:8,marginTop:16}},
-        h('button',{className:'btn btn-secondary',style:{flex:1},onClick:onClose},'Annuler'),
-        h('button',{className:'btn btn-primary',style:{flex:1},disabled:!canSave,onClick:()=>{onSave(s1,s2);onClose();}},'✓ Valider')
       )
     )
   );
@@ -433,77 +514,106 @@ function HistoryRow({m,pName,onEdit}){
   );
 }
 
-function MatchCard({m,roundId,pName,pGender,openNumPad,editScore,courtColorClass}){
+function MatchCard({m,roundId,pName,pGender,openNumPad,editScore,courtColorClass,standings,bonusMode}){
   const s1int=parseInt(m.score1)||0,s2int=parseInt(m.score2)||0;
   const win1=m.done&&s1int>s2int,win2=m.done&&s2int>s1int;
   const c=courtColor(m.court);
-  return h('div',{className:'court-card '+courtColorClass},
-    h('div',{className:'court-header'},
-      h('div',{style:{fontSize:15,fontWeight:700,display:'flex',alignItems:'center'}},
-        h('span',{className:'court-dot',style:{background:c.hex}}),
-        h('span',{style:{color:'var(--gray)',fontSize:12,marginRight:4}},'Terrain'),m.court
+
+  function matchPts(myScore,oppScore){
+    if(!m.done)return null;
+    const total=myScore+oppScore;
+    const won=myScore>oppScore;
+    let pts=won?3:1;
+    if(bonusMode&&total>0){
+      if(!won&&myScore/total>=0.44)pts++;
+      if(won&&oppScore/total<=0.2)pts++;
+    }
+    return pts;
+  }
+  const pts1=matchPts(s1int,s2int);
+  const pts2=matchPts(s2int,s1int);
+
+  function playerRank(id){
+    const idx=standings.findIndex(s=>s.id===id);
+    return idx>=0?idx+1:null;
+  }
+
+  // One player row: avatar + name + (if done: pts & rank)
+  function PlayerRow({id,teamPts}){
+    const rank=m.done?playerRank(id):null;
+    return h('div',{className:'team-player',style:{alignItems:'center',marginBottom:4}},
+      h('div',{className:'avatar '+(pGender(id)==='M'?'avatar-m':'avatar-f'),
+        style:{width:22,height:22,fontSize:10,flexShrink:0}},pName(id)[0]),
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},pName(id)),
+        m.done&&rank&&h('div',{style:{fontSize:10,color:'var(--gray)',marginTop:1}},(rank===1?'1er':rank+'ème')+' au classement')
       ),
-      h('div',{className:'court-badge',style:m.done?{background:'rgba('+c.rgb+',0.12)',border:'1px solid rgba('+c.rgb+',0.3)',color:c.hex}:{}},m.done?'✓ Terminé':'⚡ En jeu')
+      m.done&&teamPts!==null&&h('div',{style:{
+        fontSize:11,fontWeight:700,color:c.hex,
+        background:'rgba('+c.rgb+',0.15)',
+        border:'1px solid rgba('+c.rgb+',0.3)',
+        borderRadius:6,padding:'2px 6px',flexShrink:0,marginLeft:4
+      }},'+'+teamPts+'pt')
+    );
+  }
+
+  return h('div',{className:'court-card '+courtColorClass},
+    // Header: court number centered, large
+    h('div',{style:{textAlign:'center',marginBottom:12,position:'relative'}},
+      h('div',{style:{fontSize:10,color:c.hex,letterSpacing:2,fontWeight:700,textTransform:'uppercase',marginBottom:2}},'Terrain'),
+      h('div',{style:{fontSize:28,fontWeight:900,color:'#fff',letterSpacing:-1,lineHeight:1}},m.court),
+      h('div',{className:'court-badge',
+        style:{
+          position:'absolute',right:0,top:0,
+          ...(m.done?{background:'rgba('+c.rgb+',0.12)',border:'1px solid rgba('+c.rgb+',0.3)',color:c.hex}:{})
+        }
+      },m.done?'✓ Terminé':'⚡ En jeu')
     ),
+    // Teams
     h('div',{className:'vs-row'},
       h('div',{className:'team-block',
         style:{border:win1?'1.5px solid rgba('+c.rgb+',0.4)':'1px solid rgba(255,255,255,0.04)'}},
         h('div',{className:'team-label'},'Équipe A'),
-        h('div',{className:'team-player'},
-          h('div',{className:'avatar '+(pGender(m.t1p1)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t1p1)[0]),
-          pName(m.t1p1)
-        ),
-        h('div',{className:'team-player'},
-          h('div',{className:'avatar '+(pGender(m.t1p2)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t1p2)[0]),
-          pName(m.t1p2)
-        ),
+        h(PlayerRow,{id:m.t1p1,teamPts:pts1}),
+        h(PlayerRow,{id:m.t1p2,teamPts:pts1}),
         win1&&h('div',{className:'winner-badge',style:{background:'rgba('+c.rgb+',0.2)',border:'1px solid rgba('+c.rgb+',0.4)',color:c.hex}},'🏆 Victoire')
       ),
       h('div',{className:'vs-sep'},'VS'),
       h('div',{className:'team-block',
         style:{border:win2?'1.5px solid rgba('+c.rgb+',0.4)':'1px solid rgba(255,255,255,0.04)'}},
         h('div',{className:'team-label'},'Équipe B'),
-        h('div',{className:'team-player'},
-          h('div',{className:'avatar '+(pGender(m.t2p1)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t2p1)[0]),
-          pName(m.t2p1)
-        ),
-        h('div',{className:'team-player'},
-          h('div',{className:'avatar '+(pGender(m.t2p2)==='M'?'avatar-m':'avatar-f'),style:{width:22,height:22,fontSize:10}},pName(m.t2p2)[0]),
-          pName(m.t2p2)
-        ),
+        h(PlayerRow,{id:m.t2p1,teamPts:pts2}),
+        h(PlayerRow,{id:m.t2p2,teamPts:pts2}),
         win2&&h('div',{className:'winner-badge',style:{background:'rgba('+c.rgb+',0.2)',border:'1px solid rgba('+c.rgb+',0.4)',color:c.hex}},'🏆 Victoire')
       )
     ),
+    // Bottom: score bar (done) or saisir button
     m.done?
-      h('div',{className:'score-saved',style:{background:'rgba('+c.rgb+',0.1)',border:'1px solid rgba('+c.rgb+',0.2)'}},
-        h('div',null,
-          h('div',{className:'score-display',style:{color:c.hex}},m.score1,' — ',m.score2),
-          h('div',{className:'save-notice'},'Score enregistré')
+      h('div',{style:{
+        display:'flex',alignItems:'center',justifyContent:'space-between',
+        marginTop:12,background:'rgba('+c.rgb+',0.07)',
+        border:'1px solid rgba('+c.rgb+',0.18)',borderRadius:12,padding:'10px 14px'
+      }},
+        h('div',{style:{fontSize:26,fontWeight:900,color:c.hex,letterSpacing:-1,flex:1,textAlign:'center'}},
+          s1int+' — '+s2int
         ),
-        h('button',{className:'edit-fab',title:'Modifier ce score',
-          style:{background:'rgba('+c.rgb+',0.12)',border:'1px solid rgba('+c.rgb+',0.25)',color:c.hex},
+        h('button',{title:'Modifier',
+          style:{background:'rgba('+c.rgb+',0.12)',border:'1px solid rgba('+c.rgb+',0.25)',
+            color:c.hex,borderRadius:8,width:32,height:32,cursor:'pointer',
+            display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0},
           onClick:()=>editScore(roundId,m.id)},'✏️')
       ):
-      h('div',null,
-        h('div',{style:{fontSize:11,color:'var(--gray)',textAlign:'center',marginTop:14,marginBottom:6,letterSpacing:1}},'SAISIR LE SCORE'),
-        h('div',{className:'score-row'},
-          h('div',{style:{flex:1}},
-            h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQ. A'),
-            h('div',{className:'score-input'+(m.score1?' has-value':''),onClick:()=>openNumPad(roundId,m.id,1,'Score — Équipe A'),
-              style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:56,
-                background:'rgba('+c.rgb+',0.1)',border:'2px solid rgba('+c.rgb+',0.5)',boxShadow:'0 2px 8px rgba('+c.rgb+',0.15)'}},
-              m.score1||h('span',{style:{color:c.hex,fontSize:13,fontWeight:600}},'✏️ Saisir'))
-          ),
-          h('div',{className:'score-vs'},'—'),
-          h('div',{style:{flex:1}},
-            h('div',{style:{fontSize:10,color:'var(--gray)',textAlign:'center',marginBottom:4,letterSpacing:1}},'ÉQ. B'),
-            h('div',{className:'score-input'+(m.score2?' has-value':''),onClick:()=>openNumPad(roundId,m.id,2,'Score — Équipe B'),
-              style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:56,
-                background:'rgba('+c.rgb+',0.1)',border:'2px solid rgba('+c.rgb+',0.5)',boxShadow:'0 2px 8px rgba('+c.rgb+',0.15)'}},
-              m.score2||h('span',{style:{color:c.hex,fontSize:13,fontWeight:600}},'✏️ Saisir'))
-          )
-        )
-      )
+      h('button',{
+        onClick:()=>openNumPad(roundId,m.id),
+        style:{
+          display:'flex',alignItems:'center',justifyContent:'center',gap:10,
+          width:'100%',marginTop:14,padding:'15px',borderRadius:14,border:'none',
+          background:'rgba('+c.rgb+',0.15)',
+          boxShadow:'0 3px 12px rgba('+c.rgb+',0.2)',
+          color:c.hex,fontSize:16,fontWeight:700,cursor:'pointer',
+          border:'1.5px solid rgba('+c.rgb+',0.4)',transition:'all 0.15s'
+        }
+      },'⌨️  Saisir le score')
   );
 }
 
@@ -821,41 +931,44 @@ function App(){
   if(screen==='game'){
     return h('div',{className:'screen active'},
       h('div',{className:'header'},
-        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:12,borderBottom:'1px solid rgba(255,255,255,0.06)'}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:12,borderBottom:'1px solid rgba(255,255,255,0.06)',position:'relative'}},
           h('button',{className:'btn-ghost btn',style:{width:'auto',padding:'8px 0',fontSize:13},
             onClick:()=>{saveCurrentGame();setScreen('home');}},'← Accueil'),
-          h('div',{style:{fontSize:13,fontWeight:700,color:'#fff',letterSpacing:-0.3}},game.name),
+          h('div',{style:{position:'absolute',left:0,right:0,textAlign:'center',fontSize:13,fontWeight:700,color:'#fff',letterSpacing:-0.3,pointerEvents:'none'}},game.name),
           h('button',{className:'btn btn-secondary btn-sm',style:{width:'auto',fontSize:12},onClick:saveCurrentGame},'💾')
         )
       ),
       h('div',{className:'section',style:{flex:1}},
         // TERRAINS TAB
         tab==='courts'&&h('div',null,
-          h('div',{className:'stat-row'},
-            h('div',{className:'stat-box'},
-              h('div',{className:'stat-num'},game.rounds.length),
-              h('div',{className:'stat-label'},'Tours joués')
-            ),
-            h('div',{className:'stat-box'},
-              h('div',{className:'stat-num'},roundsDone),
-              h('div',{className:'stat-label'},'Terminés')
-            ),
-            h('div',{className:'stat-box'},
-              h('div',{className:'stat-num'},game.courts),
-              h('div',{className:'stat-label'},'Terrains')
-            )
-          ),
           currentRound&&h('div',null,
-            h('div',{className:'round-header'},
-              h('div',{className:'round-num'},'Tour '+game.rounds.length),
-              h('div',{className:'round-sub'},
-                allDone?'✓ Tour terminé — lancez le suivant':
-                (currentRound.matches.filter(m=>m.done).length)+'/'+currentRound.matches.length+' matchs terminés'
+            h('div',{style:{
+              background:'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.05))',
+              border:'1px solid rgba(245,158,11,0.25)',
+              borderRadius:14,padding:'14px 16px',marginBottom:16,
+              display:'flex',alignItems:'center',justifyContent:'center',
+              flexDirection:'column',textAlign:'center',gap:4
+            }},
+              h('div',{style:{fontSize:11,color:'#f59e0b',letterSpacing:2,textTransform:'uppercase',fontWeight:700}},'En cours'),
+              h('div',{style:{fontSize:28,fontWeight:900,letterSpacing:-1,color:'#fff',lineHeight:1}},'Tour '+game.rounds.length),
+              h('div',{style:{display:'flex',alignItems:'baseline',gap:6,marginTop:4}},
+                h('span',{style:{fontSize:18,fontWeight:800,color:allDone?'#4ade80':'#f59e0b'}},
+                  currentRound.matches.filter(m=>m.done).length+'/'+currentRound.matches.length
+                ),
+                h('span',{style:{fontSize:10,color:'var(--gray)',letterSpacing:1,textTransform:'uppercase'}},
+                  allDone?'✓ terminés':'matchs saisis'
+                )
               )
             ),
             currentRound.matches.map(m=>
-              h(MatchCard,{key:m.id,m,roundId:currentRound.id,pName,pGender,openNumPad,editScore,
-                courtColorClass:'court-'+(((m.court-1)%6)+1)})
+              h(MatchCard,{key:m.id,m,roundId:currentRound.id,pName,pGender,
+                openNumPad:(roundId,matchId)=>{
+                  const r=game.rounds.find(x=>x.id===roundId);
+                  const match=r.matches.find(x=>x.id===matchId);
+                  setEditingMatch({roundId,match});
+                },
+                editScore,
+                courtColorClass:'court-'+(((m.court-1)%6)+1),standings,bonusMode:game.bonusMode})
             ),
             currentRound.idle.length>0&&h('div',{className:'idle-player'},
               h('div',{className:'idle-title'},'⏸ En attente ce tour'),
@@ -1030,6 +1143,7 @@ function App(){
       editingMatch&&h(EditMatchModal,{
         match:editingMatch.match,
         pName,
+        courtColor:courtColor(editingMatch.match.court),
         onSave:(s1,s2)=>saveMatchScore(editingMatch.roundId,editingMatch.match.id,s1,s2),
         onClose:()=>setEditingMatch(null)
       })
