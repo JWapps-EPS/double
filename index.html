@@ -60,27 +60,37 @@
   .gender-btn.active-f{background:rgba(236,72,153,0.2);border-color:#ec4899;color:#f472b6}
   .court-card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,0.08);padding:16px;margin-bottom:12px;overflow:hidden;position:relative}
   .court-card::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;border-radius:16px 0 0 16px}
-  .court-1{background:linear-gradient(135deg,rgba(74,222,128,0.07),var(--card) 40%)}
+  .court-1{background:linear-gradient(135deg,rgba(74,222,128,0.22) 0%,rgba(74,222,128,0.06) 60%,var(--card) 100%)}
   .court-1::before{background:#4ade80}
-  .court-2{background:linear-gradient(135deg,rgba(59,130,246,0.08),var(--card) 40%)}
+  .court-2{background:linear-gradient(135deg,rgba(59,130,246,0.24) 0%,rgba(59,130,246,0.07) 60%,var(--card) 100%)}
   .court-2::before{background:#3b82f6}
-  .court-3{background:linear-gradient(135deg,rgba(244,114,182,0.08),var(--card) 40%)}
+  .court-3{background:linear-gradient(135deg,rgba(244,114,182,0.24) 0%,rgba(244,114,182,0.07) 60%,var(--card) 100%)}
   .court-3::before{background:#f472b6}
-  .court-4{background:linear-gradient(135deg,rgba(245,158,11,0.08),var(--card) 40%)}
+  .court-4{background:linear-gradient(135deg,rgba(245,158,11,0.24) 0%,rgba(245,158,11,0.07) 60%,var(--card) 100%)}
   .court-4::before{background:#f59e0b}
-  .court-5{background:linear-gradient(135deg,rgba(168,85,247,0.08),var(--card) 40%)}
+  .court-5{background:linear-gradient(135deg,rgba(168,85,247,0.24) 0%,rgba(168,85,247,0.07) 60%,var(--card) 100%)}
   .court-5::before{background:#a855f7}
-  .court-6{background:linear-gradient(135deg,rgba(34,211,238,0.08),var(--card) 40%)}
+  .court-6{background:linear-gradient(135deg,rgba(34,211,238,0.24) 0%,rgba(34,211,238,0.07) 60%,var(--card) 100%)}
   .court-6::before{background:#22d3ee}
   .court-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0}
   .court-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .court-badge{background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);color:var(--green);font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;letter-spacing:0.5px}
   .court-badge-done{background:rgba(163,230,53,0.1);border:1px solid rgba(163,230,53,0.2);color:var(--accent)}
-  .vs-row{display:flex;align-items:center;gap:8px}
-  .team-block{flex:1;background:var(--card2);border-radius:10px;padding:10px 12px}
-  .team-label{font-size:10px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
-  .team-player{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px}
-  .vs-sep{font-size:11px;color:var(--gray);font-weight:700;flex-shrink:0}
+  .vs-row{display:flex;align-items:stretch;gap:8px}
+  .team-block{flex:1;min-width:0;background:var(--card2);border-radius:10px;padding:12px}
+  .team-label{font-size:11px;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+  .team-player{font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+  .vs-sep{font-size:11px;color:var(--gray);font-weight:700;flex-shrink:0;display:flex;align-items:center;padding:0 2px}
+  @media(max-width:400px){
+    .vs-row{gap:5px}
+    .team-block{padding:8px 7px}
+    .team-label{font-size:9px;margin-bottom:5px}
+    .team-player{font-size:11px;gap:4px;margin-bottom:3px}
+    .player-name-text{font-size:11px}
+    .player-rank-text{font-size:8px}
+    .player-pts-badge{font-size:9px;padding:1px 4px}
+    .court-player-avatar{width:18px!important;height:18px!important;font-size:8px!important}
+  }
   .score-row{display:flex;align-items:center;gap:10px;margin-top:12px}
   .score-input{flex:1;text-align:center;background:rgba(74,222,128,0.1);border:2px solid rgba(74,222,128,0.5);border-radius:14px;padding:14px 8px;color:#fff;font-size:24px;font-weight:700;outline:none;cursor:pointer;-webkit-user-select:none;user-select:none;box-shadow:0 2px 8px rgba(74,222,128,0.15);transition:all 0.15s}
   .score-input:active{transform:scale(0.96);background:rgba(74,222,128,0.2)}
@@ -348,7 +358,14 @@ function computeStandings(players,rounds,bonusMode){
       });
     });
   });
-  return Object.values(stats).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||a.losses-b.losses);
+  const sorted=Object.values(stats).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||a.losses-b.losses);
+  // Assign ranks with ties: same pts+wins → same rank, next rank skips
+  let rank=1;
+  sorted.forEach((s,i)=>{
+    if(i>0&&(s.pts!==sorted[i-1].pts||s.wins!==sorted[i-1].wins)){rank=i+1;}
+    s.rank=rank;
+  });
+  return sorted;
 }
 
 function EditMatchModal({match,pName,onSave,onClose,courtColor:c}){
@@ -356,6 +373,9 @@ function EditMatchModal({match,pName,onSave,onClose,courtColor:c}){
   const [step,setStep]=useState(1); // 1=score A, 2=score B, 3=confirm
   const [s1,setS1]=useState('');
   const [s2,setS2]=useState('');
+
+  const colA={hex:'#f87171',rgb:'248,113,113'};
+  const colB={hex:'#60a5fa',rgb:'96,165,250'};
 
   const teamA=pName(match.t1p1)+' & '+pName(match.t1p2);
   const teamB=pName(match.t2p1)+' & '+pName(match.t2p2);
@@ -411,29 +431,29 @@ function EditMatchModal({match,pName,onSave,onClose,courtColor:c}){
 
       // STEP 1
       step===1&&h('div',null,
-        h(TeamBanner,{team:teamA,num:'A',color:col}),
+        h(TeamBanner,{team:teamA,num:'A',color:colA}),
         h('div',{style:{
           textAlign:'center',fontSize:52,fontWeight:900,letterSpacing:-2,
-          color:s1?col.hex:'rgba(255,255,255,0.15)',
-          background:'rgba('+col.rgb+',0.07)',borderRadius:12,
+          color:s1?colA.hex:'rgba(255,255,255,0.15)',
+          background:'rgba('+colA.rgb+',0.1)',border:'1.5px solid rgba('+colA.rgb+',0.3)',borderRadius:12,
           padding:'12px',marginBottom:4,minHeight:72,
           display:'flex',alignItems:'center',justifyContent:'center'
         }},s1||'—'),
         h(Keypad,{val:s1,setVal:setS1}),
         h('div',{style:{display:'flex',gap:8,marginTop:12}},
           h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'12px 18px',fontSize:14},onClick:onClose},'✕'),
-          h('button',{className:'btn btn-primary',style:{flex:1,background:s1?col.hex:'',fontSize:15},
+          h('button',{className:'btn btn-primary',style:{flex:1,background:s1?colA.hex:'',fontSize:15},
             disabled:!s1,onClick:()=>setStep(2)},'Suivant →')
         )
       ),
 
       // STEP 2
       step===2&&h('div',null,
-        h(TeamBanner,{team:teamB,num:'B',color:col}),
+        h(TeamBanner,{team:teamB,num:'B',color:colB}),
         h('div',{style:{
           textAlign:'center',fontSize:52,fontWeight:900,letterSpacing:-2,
-          color:s2?col.hex:'rgba(255,255,255,0.15)',
-          background:'rgba('+col.rgb+',0.07)',borderRadius:12,
+          color:s2?colB.hex:'rgba(255,255,255,0.15)',
+          background:'rgba('+colB.rgb+',0.1)',border:'1.5px solid rgba('+colB.rgb+',0.3)',borderRadius:12,
           padding:'12px',marginBottom:4,minHeight:72,
           display:'flex',alignItems:'center',justifyContent:'center'
         }},s2||'—'),
@@ -442,7 +462,7 @@ function EditMatchModal({match,pName,onSave,onClose,courtColor:c}){
         h('div',{style:{display:'flex',gap:8,marginTop:12}},
           h('button',{className:'btn btn-secondary',style:{flex:'0 0 auto',width:'auto',padding:'12px 18px',fontSize:14},
             onClick:()=>{setS2('');setStep(1);}},'←'),
-          h('button',{className:'btn btn-primary',style:{flex:1,background:s2&&s2!==s1?col.hex:'',fontSize:15},
+          h('button',{className:'btn btn-primary',style:{flex:1,background:s2&&s2!==s1?colB.hex:'',fontSize:15},
             disabled:!s2||s2===s1,onClick:()=>setStep(3)},'Valider →')
         )
       ),
@@ -534,28 +554,31 @@ function MatchCard({m,roundId,pName,pGender,openNumPad,editScore,courtColorClass
   const pts2=matchPts(s2int,s1int);
 
   function playerRank(id){
-    const idx=standings.findIndex(s=>s.id===id);
-    return idx>=0?idx+1:null;
+    const s=standings.find(x=>x.id===id);
+    return s?s.rank:null;
   }
 
   // One player row: avatar + name + (if done: pts & rank)
   function PlayerRow({id,teamPts}){
     const rank=m.done?playerRank(id):null;
-    return h('div',{className:'team-player',style:{alignItems:'center',marginBottom:4}},
-      h('div',{className:'avatar '+(pGender(id)==='M'?'avatar-m':'avatar-f'),
-        style:{width:22,height:22,fontSize:10,flexShrink:0}},pName(id)[0]),
+    return h('div',{className:'team-player'},
+      h('div',{className:'avatar court-player-avatar '+(pGender(id)==='M'?'avatar-m':'avatar-f'),
+        style:{width:24,height:24,fontSize:10,flexShrink:0}},pName(id)[0]),
       h('div',{style:{flex:1,minWidth:0}},
-        h('div',{style:{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},pName(id)),
-        m.done&&rank&&h('div',{style:{fontSize:10,color:'var(--gray)',marginTop:1}},(rank===1?'1er':rank+'ème')+' au classement')
+        h('div',{className:'player-name-text',style:{fontSize:13,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},pName(id)),
+        m.done&&rank&&h('div',{className:'player-rank-text',style:{fontSize:10,color:'var(--gray)',marginTop:1}},rank===1?'1er':rank+'ème')
       ),
-      m.done&&teamPts!==null&&h('div',{style:{
+      m.done&&teamPts!==null&&h('div',{className:'player-pts-badge',style:{
         fontSize:11,fontWeight:700,color:c.hex,
         background:'rgba('+c.rgb+',0.15)',
         border:'1px solid rgba('+c.rgb+',0.3)',
-        borderRadius:6,padding:'2px 6px',flexShrink:0,marginLeft:4
+        borderRadius:6,padding:'2px 5px',flexShrink:0,marginLeft:3,whiteSpace:'nowrap'
       }},'+'+teamPts+'pt')
     );
   }
+
+  const tA={hex:'#f87171',rgb:'248,113,113'};
+  const tB={hex:'#60a5fa',rgb:'96,165,250'};
 
   return h('div',{className:'court-card '+courtColorClass},
     // Header: court number centered, large
@@ -572,19 +595,47 @@ function MatchCard({m,roundId,pName,pGender,openNumPad,editScore,courtColorClass
     // Teams
     h('div',{className:'vs-row'},
       h('div',{className:'team-block',
-        style:{border:win1?'1.5px solid rgba('+c.rgb+',0.4)':'1px solid rgba(255,255,255,0.04)'}},
-        h('div',{className:'team-label'},'Équipe A'),
-        h(PlayerRow,{id:m.t1p1,teamPts:pts1}),
-        h(PlayerRow,{id:m.t1p2,teamPts:pts1}),
-        win1&&h('div',{className:'winner-badge',style:{background:'rgba('+c.rgb+',0.2)',border:'1px solid rgba('+c.rgb+',0.4)',color:c.hex}},'🏆 Victoire')
+        style:{
+          border:win1?'1.5px solid rgba('+tA.rgb+',0.5)':'1px solid rgba('+tA.rgb+',0.2)',
+          background:'rgba('+tA.rgb+',0.07)'
+        }},
+        h('div',{className:'team-label',style:{textAlign:'center',color:tA.hex}},'Équipe A'),
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,flexWrap:'wrap'}},
+          h('div',{style:{fontSize:14,fontWeight:800,color:'#fff',textAlign:'center',lineHeight:1.3}},pName(m.t1p1)),
+          h('div',{style:{fontSize:11,color:'rgba('+tA.rgb+',0.7)',fontWeight:600}},'&'),
+          h('div',{style:{fontSize:14,fontWeight:800,color:'#fff',textAlign:'center',lineHeight:1.3}},pName(m.t1p2))
+        ),
+        m.done&&h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:6,flexWrap:'wrap'}},
+          pts1!==null&&h('div',{style:{fontSize:12,fontWeight:700,color:tA.hex,background:'rgba('+tA.rgb+',0.15)',border:'1px solid rgba('+tA.rgb+',0.3)',borderRadius:6,padding:'2px 7px'}},'+'+pts1+'pt'),
+          h('div',{style:{fontSize:9,color:'var(--gray)',textAlign:'center'}},
+            [m.t1p1,m.t1p2].map(id=>{const r=playerRank(id);return r?(pName(id)+' '+(r===1?'1er':r+'ème')):null;}).filter(Boolean).join(' · ')
+          )
+        ),
+        win1&&h('div',{style:{textAlign:'center',marginTop:6}},
+          h('div',{className:'winner-badge',style:{display:'inline-block',background:'rgba('+tA.rgb+',0.2)',border:'1px solid rgba('+tA.rgb+',0.4)',color:tA.hex}},'🏆 Victoire')
+        )
       ),
       h('div',{className:'vs-sep'},'VS'),
       h('div',{className:'team-block',
-        style:{border:win2?'1.5px solid rgba('+c.rgb+',0.4)':'1px solid rgba(255,255,255,0.04)'}},
-        h('div',{className:'team-label'},'Équipe B'),
-        h(PlayerRow,{id:m.t2p1,teamPts:pts2}),
-        h(PlayerRow,{id:m.t2p2,teamPts:pts2}),
-        win2&&h('div',{className:'winner-badge',style:{background:'rgba('+c.rgb+',0.2)',border:'1px solid rgba('+c.rgb+',0.4)',color:c.hex}},'🏆 Victoire')
+        style:{
+          border:win2?'1.5px solid rgba('+tB.rgb+',0.5)':'1px solid rgba('+tB.rgb+',0.2)',
+          background:'rgba('+tB.rgb+',0.07)'
+        }},
+        h('div',{className:'team-label',style:{textAlign:'center',color:tB.hex}},'Équipe B'),
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,flexWrap:'wrap'}},
+          h('div',{style:{fontSize:14,fontWeight:800,color:'#fff',textAlign:'center',lineHeight:1.3}},pName(m.t2p1)),
+          h('div',{style:{fontSize:11,color:'rgba('+tB.rgb+',0.7)',fontWeight:600}},'&'),
+          h('div',{style:{fontSize:14,fontWeight:800,color:'#fff',textAlign:'center',lineHeight:1.3}},pName(m.t2p2))
+        ),
+        m.done&&h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:6,flexWrap:'wrap'}},
+          pts2!==null&&h('div',{style:{fontSize:12,fontWeight:700,color:tB.hex,background:'rgba('+tB.rgb+',0.15)',border:'1px solid rgba('+tB.rgb+',0.3)',borderRadius:6,padding:'2px 7px'}},'+'+pts2+'pt'),
+          h('div',{style:{fontSize:9,color:'var(--gray)',textAlign:'center'}},
+            [m.t2p1,m.t2p2].map(id=>{const r=playerRank(id);return r?(pName(id)+' '+(r===1?'1er':r+'ème')):null;}).filter(Boolean).join(' · ')
+          )
+        ),
+        win2&&h('div',{style:{textAlign:'center',marginTop:6}},
+          h('div',{className:'winner-badge',style:{display:'inline-block',background:'rgba('+tB.rgb+',0.2)',border:'1px solid rgba('+tB.rgb+',0.4)',color:tB.hex}},'🏆 Victoire')
+        )
       )
     ),
     // Bottom: score bar (done) or saisir button
@@ -983,32 +1034,76 @@ function App(){
           )
         ),
         // CLASSEMENT TAB
-        tab==='standings'&&h('div',null,
-          h('div',{className:'section-title'},'Classement individuel'),
-          game.bonusMode&&h('div',{className:'info-banner'},
-            '🏆 Victoire = 3 pts · Défaite = 1 pt\n',h('br',null),
-            '⭐ Défaite serrée (≥44%) = +1 · 💪 Victoire écrasante (≤20%) = +1'
-          ),
-          standings.length===0?
-            h('div',{style:{color:'var(--gray)',fontSize:14,textAlign:'center',padding:'32px 0'}},'Les scores apparaîtront ici après le premier match.'):
-            standings.map((s,i)=>h('div',{key:s.id,className:'rank-item'},
-              h('div',{className:'rank-pos '+(i===0?'gold':i===1?'silver':i===2?'bronze':'')},i+1),
-              h('div',{className:'avatar '+(s.gender==='M'?'avatar-m':'avatar-f'),style:{width:32,height:32,fontSize:13}},s.name[0]),
-              h('div',{style:{flex:1}},
-                h('div',{className:'rank-name'},s.name),
-                h('div',{className:'rank-stats'},
-                  h('span',{className:'badge badge-win'},s.wins+'V'),
-                  ' ',
-                  h('span',{className:'badge badge-loss'},s.losses+'D'),
-                  ' ',s.matches+' match'+(s.matches>1?'s':''),
-                  s.bonusEarned>0&&h('span',null,' · ',h('span',{style:{color:'var(--gold)'}},'+'+s.bonusEarned+' bonus'))
-                )
-              ),
-              h('div',{style:{textAlign:'right'}},
-                h('div',{className:'rank-pts'},s.pts),
-                h('div',{className:'rank-pts-label'},'points')
+        tab==='standings'&&h('div',{style:{
+          position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',
+          zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',
+          padding:'16px'
+        }},
+          h('div',{style:{
+            background:'#111d35',borderRadius:20,
+            border:'1px solid rgba(255,255,255,0.1)',
+            width:'100%',maxWidth:340,
+            maxHeight:'80vh',overflow:'hidden',
+            display:'flex',flexDirection:'column'
+          }},
+            // Header
+            h('div',{style:{
+              padding:'18px 20px 14px',
+              borderBottom:'1px solid rgba(255,255,255,0.07)',
+              display:'flex',alignItems:'center',justifyContent:'space-between',
+              flexShrink:0
+            }},
+              h('div',{style:{fontSize:16,fontWeight:800,color:'#fff',letterSpacing:-0.3}},'🏆 Classement'),
+              game.bonusMode&&h('div',{style:{fontSize:10,color:'var(--gray)',lineHeight:1.5,textAlign:'right'}},
+                '3pts victoire · 1pt défaite',h('br',null),'bonus ≥44% / ≤20%'
               )
-            ))
+            ),
+            // List
+            h('div',{style:{overflowY:'auto',padding:'10px 14px 20px'}},
+              standings.length===0?
+                h('div',{style:{color:'var(--gray)',fontSize:13,textAlign:'center',padding:'24px 0'}},'Aucun score saisi.'):
+                standings.map((s,i)=>{
+                  const medal=s.rank===1?'🥇':s.rank===2?'🥈':s.rank===3?'🥉':null;
+                  return h('div',{key:s.id,style:{
+                    display:'flex',alignItems:'center',gap:10,
+                    padding:'10px 12px',borderRadius:12,marginBottom:6,
+                    background: s.rank===1?'rgba(245,158,11,0.1)':
+                                s.rank===2?'rgba(148,163,184,0.07)':
+                                s.rank===3?'rgba(249,115,22,0.07)':'rgba(255,255,255,0.03)',
+                    border: s.rank===1?'1px solid rgba(245,158,11,0.25)':
+                            s.rank===2?'1px solid rgba(148,163,184,0.15)':
+                            s.rank===3?'1px solid rgba(249,115,22,0.15)':'1px solid rgba(255,255,255,0.05)'
+                  }},
+                    // Rank
+                    h('div',{style:{
+                      width:30,height:30,borderRadius:8,flexShrink:0,
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                      fontSize:medal?18:13,fontWeight:700,
+                      color:s.rank===1?'var(--gold)':s.rank===2?'#94a3b8':s.rank===3?'#f97316':'var(--gray)',
+                      background:medal?'transparent':'rgba(255,255,255,0.05)'
+                    }},medal||s.rank),
+                    // Avatar
+                    h('div',{className:'avatar '+(s.gender==='M'?'avatar-m':'avatar-f'),
+                      style:{width:28,height:28,fontSize:12,flexShrink:0}},s.name[0]),
+                    // Name + stats
+                    h('div',{style:{flex:1,minWidth:0}},
+                      h('div',{style:{fontSize:14,fontWeight:700,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},s.name),
+                      h('div',{style:{fontSize:10,color:'var(--gray)',marginTop:2}},
+                        s.wins+'V · '+s.losses+'D · '+s.matches+' match'+(s.matches>1?'s':''),
+                        s.bonusEarned>0&&h('span',{style:{color:'var(--gold)'}},' · +'+s.bonusEarned+' bonus')
+                      )
+                    ),
+                    // Points
+                    h('div',{style:{textAlign:'right',flexShrink:0}},
+                      h('div',{style:{fontSize:22,fontWeight:900,
+                        color:s.rank===1?'var(--gold)':s.rank===2?'#94a3b8':s.rank===3?'#f97316':'var(--green)'
+                      }},s.pts),
+                      h('div',{style:{fontSize:9,color:'var(--gray)',letterSpacing:1,textTransform:'uppercase'}},'pts')
+                    )
+                  );
+                })
+            )
+          )
         ),
         // HISTORIQUE TAB
         tab==='history'&&h('div',null,
