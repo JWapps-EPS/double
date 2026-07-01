@@ -203,7 +203,16 @@ function courtColor(courtNum){
   return COURT_COLORS[(courtNum-1)%COURT_COLORS.length];
 }
 
-function buildRound(players,prevRounds,courts,mixMode){
+function shuffleArr(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function buildRound(players,prevRounds,courts,mixMode,forcedPlayingIds){
   const slots=courts*4;
 
   // Match count per player
@@ -230,6 +239,26 @@ function buildRound(players,prevRounds,courts,mixMode){
     });
   });
 
+  // Opponent history: how many times has player X faced player Y
+  const oppH={};
+  prevRounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      const t1=[m.t1p1,m.t1p2],t2=[m.t2p1,m.t2p2];
+      t1.forEach(a=>t2.forEach(b=>{
+        if(a&&b){const k=[a,b].sort().join('-');oppH[k]=(oppH[k]||0)+1;}
+      }));
+    });
+  });
+  // Score how many times two pairs (as teams) have already faced each other (sum of individual opp counts)
+  function pairOppScore(pairA,pairB){
+    let s=0;
+    pairA.forEach(a=>pairB.forEach(b=>{
+      const k=[a.id,b.id].sort().join('-');
+      s+=(oppH[k]||0);
+    }));
+    return s;
+  }
+
   // Priority sort: least matches first, then idle recency
   function byPriority(a,b){
     const dm=(matchCount[a.id]||0)-(matchCount[b.id]||0);
@@ -237,26 +266,35 @@ function buildRound(players,prevRounds,courts,mixMode){
   }
 
   function bestPartner(player,candidates){
-    return candidates.slice().sort((a,b)=>{
-      const ka=[player.id,a.id].sort().join('-');
-      const kb=[player.id,b.id].sort().join('-');
-      return (partnerH[ka]||0)-(partnerH[kb]||0);
-    })[0];
+    const scored=shuffleArr(candidates).map(cand=>{
+      const k=[player.id,cand.id].sort().join('-');
+      return {cand,score:partnerH[k]||0};
+    });
+    const minScore=Math.min(...scored.map(s=>s.score));
+    const good=scored.filter(s=>s.score<=minScore+1);
+    return good[Math.floor(Math.random()*good.length)].cand;
   }
 
   const hasMix=(mixMode==='mixed'||mixMode==='most')
     &&players.some(p=>p.gender==='M')&&players.some(p=>p.gender==='F');
 
   // --- Step 1: select playing pool ---
-  // Core rule: ecart max 1 match. Select the playingCount players with the
-  // fewest matches, respecting the group-of-4 constraint.
-  // Then, WITHIN that pool, arrange pairs to maximise mixity.
+  // If forcedPlayingIds is provided (re-draw), reuse exactly that pool.
+  // Otherwise, core rule: ecart max 1 match. Select the playingCount players
+  // with the fewest matches, respecting the group-of-4 constraint.
 
   const n=players.length;
-  const maxPlaying=Math.min(slots,Math.floor(n/4)*4);
-  const sorted=[...players].sort(byPriority);
-  let playing=sorted.slice(0,maxPlaying);
-  let idle=sorted.slice(maxPlaying);
+  let playing,idle;
+  if(forcedPlayingIds){
+    const idSet=new Set(forcedPlayingIds);
+    playing=shuffleArr(players.filter(p=>idSet.has(p.id)));
+    idle=players.filter(p=>!idSet.has(p.id));
+  } else {
+    const maxPlaying=Math.min(slots,Math.floor(n/4)*4);
+    const sorted=[...players].sort(byPriority);
+    playing=shuffleArr(sorted.slice(0,maxPlaying));
+    idle=sorted.slice(maxPlaying);
+  }
 
   // --- Step 2: form pairs ---
   let pairs=[];
@@ -309,11 +347,19 @@ function buildRound(players,prevRounds,courts,mixMode){
     pairs=[...mixedPairs,...samePairs];
   }
 
-  // Assign pairs to courts
+  // Assign pairs to courts — match pairs against each other minimizing repeat opponents,
+  // using weighted random selection among near-best options to avoid deterministic lock-in
   const matches=[];
-  for(let i=0;i+1<pairs.length&&matches.length<courts;i+=2){
-    const t1=pairs[i],t2=pairs[i+1];
-    if(!t1||!t2)break;
+  const availablePairs=shuffleArr(pairs);
+  while(availablePairs.length>=2&&matches.length<courts){
+    const t1=availablePairs.shift();
+    // score all remaining candidates
+    const scored=availablePairs.map((cand,idx)=>({idx,cand,score:pairOppScore(t1,cand)}));
+    const minScore=Math.min(...scored.map(s=>s.score));
+    // candidates within 1 of the best score are all considered "good enough" — pick randomly among them
+    const goodCandidates=scored.filter(s=>s.score<=minScore+1);
+    const picked=goodCandidates[Math.floor(Math.random()*goodCandidates.length)];
+    const t2=availablePairs.splice(picked.idx,1)[0];
     matches.push({
       id:genId(),court:matches.length+1,
       t1p1:t1[0].id,t1p2:t1[1].id,
@@ -742,6 +788,19 @@ function App(){
     const updated={...game,rounds:[...game.rounds,newRound]};
     setGame(updated);saveGame(updated);
     window.scrollTo(0,0);
+  };
+
+  const redrawCurrentRound=()=>{
+    const rounds=game.rounds;
+    const currentR=rounds[rounds.length-1];
+    if(!currentR)return;
+    // Determine the playing pool of the current round (all players in matches, excluding idle)
+    const playingIds=currentR.matches.flatMap(m=>[m.t1p1,m.t1p2,m.t2p1,m.t2p2]);
+    const prevRounds=rounds.slice(0,-1); // history excludes current round being redrawn
+    const newRound=buildRound(game.players,prevRounds,game.courts,game.mixMode,playingIds);
+    const updatedRounds=[...prevRounds,newRound];
+    const updated={...game,rounds:updatedRounds};
+    setGame(updated);saveGame(updated);
   };
 
   const saveCurrentGame=()=>{
@@ -1217,6 +1276,18 @@ function App(){
           h('div',{style:{height:8}})
         )
       ),
+      // Floating redraw button (only on Matchs tab, while round isn't complete)
+      tab==='courts'&&currentRound&&!allDone&&h('button',{
+        onClick:redrawCurrentRound,
+        style:{
+          position:'fixed',bottom:96,right:18,zIndex:90,
+          display:'flex',alignItems:'center',gap:8,
+          background:'#111d35',border:'1.5px solid rgba(245,158,11,0.4)',
+          borderRadius:30,padding:'12px 18px',
+          boxShadow:'0 6px 20px rgba(0,0,0,0.4)',
+          color:'#f59e0b',fontSize:14,fontWeight:700,cursor:'pointer'
+        }
+      },'🎲 Refaire le tirage'),
       // TAB BAR
       h('div',{className:'tab-bar'},
         [
