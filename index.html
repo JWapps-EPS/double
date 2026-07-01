@@ -184,7 +184,7 @@
 const {useState,useEffect,useRef}=React;
 const h=React.createElement;
 
-function saveGame(game){try{localStorage.setItem('td_game_v2',JSON.stringify(game));}catch(e){}}
+function saveCurrentGame(game){try{localStorage.setItem('td_game_v2',JSON.stringify(game));}catch(e){}}
 function loadGame(){try{const d=localStorage.getItem('td_game_v2');return d?JSON.parse(d):null;}catch(e){return null;}}
 function saveSavedGames(list){try{localStorage.setItem('td_saves_v2',JSON.stringify(list));}catch(e){}}
 function loadSavedGames(){try{const d=localStorage.getItem('td_saves_v2');return d?JSON.parse(d):[];}catch(e){return[];}}
@@ -721,7 +721,7 @@ function AddPlayerPanel({game,setGame}){
     if(!name.trim())return;
     const pl={id:genId(),name:name.trim(),gender};
     const u={...game,players:[...game.players,pl]};
-    setGame(u);saveGame(u);setName('');
+    setGame(u);saveCurrentGame(u);setName('');
   };
   return h('div',{className:'card'},
     h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Ajouter un joueur'),
@@ -780,13 +780,13 @@ function App(){
     const finalMix=(hasMales&&hasFemales)?mixMode:'none';
     const firstRound=buildRound(players,[],courts,finalMix);
     const g={id:genId(),name:gameName,courts,players,rounds:[firstRound],mixMode:finalMix,bonusMode,created:Date.now()};
-    setGame(g);saveGame(g);setScreen('game');setTab('courts');
+    setGame(g);saveCurrentGame(g);setScreen('game');setTab('courts');
   };
 
   const nextRound=()=>{
     const newRound=buildRound(game.players,game.rounds,game.courts,game.mixMode);
     const updated={...game,rounds:[...game.rounds,newRound]};
-    setGame(updated);saveGame(updated);
+    setGame(updated);saveCurrentGame(updated);
     window.scrollTo(0,0);
   };
 
@@ -800,17 +800,23 @@ function App(){
     const newRound=buildRound(game.players,prevRounds,game.courts,game.mixMode,playingIds);
     const updatedRounds=[...prevRounds,newRound];
     const updated={...game,rounds:updatedRounds};
-    setGame(updated);saveGame(updated);
+    setGame(updated);saveCurrentGame(updated);
   };
 
-  const saveCurrentGame=()=>{
+  const saveCurrentGame=(g)=>{
+    const target=g||game;
+    if(!target)return;
+    try{localStorage.setItem('td_game_v2',JSON.stringify(target));}catch(e){}
     const saves=loadSavedGames();
-    const idx=saves.findIndex(s=>s.id===game.id);
-    const saved={...game,savedAt:Date.now()};
+    const idx=saves.findIndex(s=>s.id===target.id);
+    const saved={...target,savedAt:Date.now()};
     if(idx>=0)saves[idx]=saved;else saves.unshift(saved);
     saves.splice(8);
     saveSavedGames(saves);setSavedGames([...saves]);
   };
+
+  // Auto-save whenever game changes
+  useEffect(()=>{if(game)saveCurrentGame(game);},[game]);
 
   const deleteSave=id=>{
     const saves=loadSavedGames().filter(s=>s.id!==id);
@@ -837,7 +843,7 @@ function App(){
       });
       return{...r,matches};
     });
-    const updated={...game,rounds};setGame(updated);saveGame(updated);
+    const updated={...game,rounds};setGame(updated);saveCurrentGame(updated);
   };
 
   const editScore=(roundId,matchId)=>{
@@ -849,7 +855,7 @@ function App(){
       });
       return{...r,matches};
     });
-    const updated={...game,rounds};setGame(updated);saveGame(updated);
+    const updated={...game,rounds};setGame(updated);saveCurrentGame(updated);
   };
 
   const saveMatchScore=(roundId,matchId,s1,s2)=>{
@@ -861,7 +867,7 @@ function App(){
       });
       return{...r,matches};
     });
-    const updated={...game,rounds};setGame(updated);saveGame(updated);
+    const updated={...game,rounds};setGame(updated);saveCurrentGame(updated);
   };
 
   const pName=id=>(game?.players||[]).find(p=>p.id===id)?.name||'?';
@@ -1043,9 +1049,8 @@ function App(){
       h('div',{className:'header'},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:12,borderBottom:'1px solid rgba(255,255,255,0.06)',position:'relative'}},
           h('button',{className:'btn-ghost btn',style:{width:'auto',padding:'8px 0',fontSize:13},
-            onClick:()=>{saveCurrentGame();setScreen('home');}},'← Accueil'),
+            onClick:()=>{setScreen('home');}},'← Accueil'),
           h('div',{style:{position:'absolute',left:0,right:0,textAlign:'center',fontSize:13,fontWeight:700,color:'#fff',letterSpacing:-0.3,pointerEvents:'none'}},game.name),
-          h('button',{className:'btn btn-secondary btn-sm',style:{width:'auto',fontSize:12},onClick:saveCurrentGame},'💾')
         )
       ),
       h('div',{className:'section',style:{flex:1}},
@@ -1200,7 +1205,7 @@ function App(){
           h('div',{className:'card'},
             h('div',{style:{fontSize:13,fontWeight:700,marginBottom:12,color:'#fff'}},'Nombre de terrains'),
             h('div',{style:{display:'flex',gap:8}},
-              [1,2,3,4,5,6].map(n=>h('button',{key:n,onClick:()=>{const u={...game,courts:n};setGame(u);saveGame(u);},
+              [1,2,3,4,5,6].map(n=>h('button',{key:n,onClick:()=>{const u={...game,courts:n};setGame(u);saveCurrentGame(u);},
                 style:{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid '+(game.courts===n?'var(--green-mid)':'rgba(255,255,255,0.1)'),
                   background:game.courts===n?'rgba(74,222,128,0.15)':'var(--card2)',
                   color:game.courts===n?'var(--green)':'var(--gray)',fontWeight:700,fontSize:16,cursor:'pointer',transition:'all 0.15s'}
@@ -1215,7 +1220,7 @@ function App(){
               {v:'mixed',l:'Équipes mixtes',s:'1 homme + 1 femme par équipe'},
               {v:'most',l:'Mixte si possible',s:'Priorité au mixte, mais flexible'},
               {v:'none',l:'Libre',s:'Sans contrainte de genre'}
-            ].map(o=>h('div',{key:o.v,onClick:()=>{const u={...game,mixMode:o.v};setGame(u);saveGame(u);},
+            ].map(o=>h('div',{key:o.v,onClick:()=>{const u={...game,mixMode:o.v};setGame(u);saveCurrentGame(u);},
               style:{display:'flex',alignItems:'center',gap:12,padding:'12px 10px',borderRadius:10,
                 background:game.mixMode===o.v?'rgba(74,222,128,0.1)':'transparent',
                 border:'1px solid '+(game.mixMode===o.v?'rgba(74,222,128,0.3)':'transparent'),
@@ -1239,7 +1244,7 @@ function App(){
                 h('div',{className:'toggle-label'},'Activer les bonus'),
                 h('div',{className:'toggle-sub'},'Défaite serrée / Victoire écrasante')
               ),
-              h('button',{className:'toggle '+(game.bonusMode?'on':''),onClick:()=>{const u={...game,bonusMode:!game.bonusMode};setGame(u);saveGame(u);}})
+              h('button',{className:'toggle '+(game.bonusMode?'on':''),onClick:()=>{const u={...game,bonusMode:!game.bonusMode};setGame(u);saveCurrentGame(u);}})
             ),
             game.bonusMode&&h('div',{style:{marginTop:12,padding:'12px',background:'var(--card2)',borderRadius:10}},
               h('div',{style:{fontSize:12,color:'var(--gray)',lineHeight:1.9}},
@@ -1267,7 +1272,7 @@ function App(){
                 ),
                 h('button',{className:'delete-btn',title:'Retirer ce joueur',
                   onClick:()=>{if(game.players.length<=4)return alert('Minimum 4 joueurs requis.');
-                    const u={...game,players:game.players.filter(x=>x.id!==p.id)};setGame(u);saveGame(u);}
+                    const u={...game,players:game.players.filter(x=>x.id!==p.id)};setGame(u);saveCurrentGame(u);}
                 },'×')
               );
             })
